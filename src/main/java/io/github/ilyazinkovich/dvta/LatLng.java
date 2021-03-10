@@ -7,7 +7,10 @@ class LatLng {
   public final double lat;
   public final double lng;
 
-  LatLng(double lat, double lng) {
+  LatLng(
+      double lat,
+      double lng
+  ) {
     this.lat = lat;
     this.lng = lng;
   }
@@ -28,5 +31,13 @@ class LatLng {
   @Override
   public int hashCode() {
     return Objects.hash(lat, lng);
+  }
+
+  @Override
+  public String toString() {
+    return "LatLng{" +
+        "lat=" + lat +
+        ", lng=" + lng +
+        '}';
   }
 }

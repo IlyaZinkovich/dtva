@@ -7,7 +7,10 @@ class Passenger {
 
   public final Request request;
 
-  public Passenger(Request request, Instant pickUpTime) {
+  public Passenger(
+      Request request,
+      Instant pickUpTime
+  ) {
     this.request = new Request(request, pickUpTime);
   }
 
@@ -26,5 +29,12 @@ class Passenger {
   @Override
   public int hashCode() {
     return Objects.hash(request);
+  }
+
+  @Override
+  public String toString() {
+    return "Passenger{" +
+        "request=" + request +
+        '}';
   }
 }

@@ -6,15 +6,25 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public class App {
 
   public static void main(String[] args) {
+    Vehicle vehicle = new Vehicle(
+        UUID.randomUUID(), new LatLng(40.757516706542969, -73.952154846191406),
+        Instant.parse("2016-03-14T17:24:55.00Z"),
+        new HashSet<>(),
+        3);
     Set<Request> requests = requests();
     RV rv = new RV(new HashMap<>(), new HashMap<>());
     for (Request r1 : requests) {
+      if (travel(vehicle, r1)) {
+        rv.addVehicleToRequest(vehicle, r1);
+      }
       for (Request r2 : requests) {
         if (!r1.equals(r2)) {
           Double cost = match(r1, r2);
@@ -27,15 +37,60 @@ public class App {
     System.out.println(rv);
   }
 
-  public Trip travel(Vehicle vehicle, Request request) {
+  private static boolean travel(Vehicle vehicle, Request request) {
+    List<RouteStop> stops = routeStops(vehicle, request);
+    Set<List<RouteStop>> permutations = Permutations.generate(stops, stops.size());
+    Iterator<List<RouteStop>> iterator = permutations.iterator();
+    while (iterator.hasNext()) {
+      List<RouteStop> route = iterator.next();
+      Set<Request> pickUpRequests = passengerRequests(vehicle);
+      LatLng position = vehicle.currentPosition;
+      Instant time = vehicle.currentTime;
+      boolean valid = true;
+      for (RouteStop stop : route) {
+        if (stop.type == Type.PICK_UP) {
+          pickUpRequests.add(stop.request);
+        } else {
+          if (pickUpRequests.contains(stop.request)) {
+            pickUpRequests.remove(stop.request);
+          } else {
+            valid = false;
+          }
+        }
+        Duration drivingDuration = drivingDuration(position, stop.location());
+        time = time.plus(drivingDuration);
+        position = stop.location();
+        if (!stop.isValid(time)) {
+          valid = false;
+        }
+        if (!valid) {
+          iterator.remove();
+          break;
+        }
+      }
+      if (valid) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static List<RouteStop> routeStops(Vehicle vehicle, Request request) {
     List<RouteStop> stops = new ArrayList<>();
     for (Passenger passenger : vehicle.passengers) {
-      stops.add(new RouteStop(passenger.request, Type.PICK_UP));
       stops.add(new RouteStop(passenger.request, Type.DROP_OFF));
     }
     stops.add(new RouteStop(request, Type.PICK_UP));
     stops.add(new RouteStop(request, Type.DROP_OFF));
-    return new Trip(new ArrayList<>());
+    return stops;
+  }
+
+  private static Set<Request> passengerRequests(Vehicle vehicle) {
+    Set<Request> pickUpRequests = new HashSet<>();
+    for (Passenger passenger : vehicle.passengers) {
+      pickUpRequests.add(passenger.request);
+    }
+    return pickUpRequests;
   }
 
   private static Set<Request> requests() {
@@ -45,16 +100,18 @@ public class App {
     LatLng destination1 = new LatLng(40.765602111816406, -73.964630126953125);
     Instant requestTime1 = Instant.parse("2016-03-14T17:24:55.00Z");
     Request r1 = new Request(
+        UUID.randomUUID(),
         origin1,
         destination1,
         requestTime1,
         requestTime1.plus(maxWaitTime),
         requestTime1.plus(drivingDuration(origin1, destination1)),
         maxToleratedDelay);
-    LatLng origin2 = new LatLng(origin1.lat - 0.001, origin1.lng - 0.001);
-    LatLng destination2 = new LatLng(destination1.lat - 0.001, destination1.lng - 0.001);
+    LatLng origin2 = new LatLng(origin1.lat - 0.01, origin1.lng - 0.01);
+    LatLng destination2 = new LatLng(destination1.lat + 0.01, destination1.lng + 0.01);
     Instant requestTime2 = requestTime1.plus(Duration.ofSeconds(10));
     Request r2 = new Request(
+        UUID.randomUUID(),
         origin2,
         destination2,
         requestTime2,

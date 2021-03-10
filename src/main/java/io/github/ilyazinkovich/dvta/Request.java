@@ -3,9 +3,11 @@ package io.github.ilyazinkovich.dvta;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.UUID;
 
 class Request {
 
+  public final UUID id;
   public final LatLng origin; // o
   public final LatLng destination; // d
   public final Instant requestTime; // tR
@@ -15,6 +17,7 @@ class Request {
   public final Duration maxToleratedDelay; // ∆ = tD - t*
 
   Request(
+      UUID id,
       LatLng origin,
       LatLng destination,
       Instant requestTime,
@@ -22,6 +25,7 @@ class Request {
       Instant earliestPossibleDropOffTime,
       Duration maxToleratedDelay
   ) {
+    this.id = id;
     this.origin = origin;
     this.destination = destination;
     this.requestTime = requestTime;
@@ -31,7 +35,11 @@ class Request {
     this.maxToleratedDelay = maxToleratedDelay;
   }
 
-  public Request(Request request, Instant pickUpTime) {
+  public Request(
+      Request request,
+      Instant pickUpTime
+  ) {
+    this.id = request.id;
     this.origin = request.origin;
     this.destination = request.destination;
     this.requestTime = request.requestTime;
@@ -50,17 +58,26 @@ class Request {
       return false;
     }
     Request request = (Request) o;
-    return Objects.equals(origin, request.origin) && Objects
-        .equals(destination, request.destination) && Objects
-        .equals(requestTime, request.requestTime) && Objects
+    return Objects.equals(id, request.id) && Objects
+        .equals(origin, request.origin) && Objects.equals(destination, request.destination)
+        && Objects.equals(requestTime, request.requestTime) && Objects
         .equals(latestAcceptablePickUpTime, request.latestAcceptablePickUpTime) && Objects
         .equals(pickUpTime, request.pickUpTime) && Objects
-        .equals(earliestPossibleDropOffTime, request.earliestPossibleDropOffTime);
+        .equals(earliestPossibleDropOffTime, request.earliestPossibleDropOffTime) && Objects
+        .equals(maxToleratedDelay, request.maxToleratedDelay);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(origin, destination, requestTime, latestAcceptablePickUpTime, pickUpTime,
-        earliestPossibleDropOffTime);
+    return Objects
+        .hash(id, origin, destination, requestTime, latestAcceptablePickUpTime, pickUpTime,
+            earliestPossibleDropOffTime, maxToleratedDelay);
+  }
+
+  @Override
+  public String toString() {
+    return "Request{" +
+        "id=" + id +
+        '}';
   }
 }

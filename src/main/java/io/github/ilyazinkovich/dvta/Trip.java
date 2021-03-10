@@ -11,4 +11,11 @@ class Trip {
   ) {
     this.routeStops = routeStops;
   }
+
+  @Override
+  public String toString() {
+    return "Trip{" +
+        "routeStops=" + routeStops +
+        '}';
+  }
 }
