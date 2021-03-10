@@ -6,7 +6,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -15,7 +14,7 @@ public class App {
 
   public static void main(String[] args) {
     Vehicle vehicle = new Vehicle(
-        UUID.randomUUID(), new LatLng(40.757516706542969, -73.952154846191406),
+        UUID.randomUUID(), new LatLng(40.757516706542969, -73.972154846191406),
         Instant.parse("2016-03-14T17:24:55.00Z"),
         new HashSet<>(),
         3);
@@ -40,36 +39,43 @@ public class App {
   private static boolean travel(Vehicle vehicle, Request request) {
     List<RouteStop> stops = routeStops(vehicle, request);
     Set<List<RouteStop>> permutations = Permutations.generate(stops, stops.size());
-    Iterator<List<RouteStop>> iterator = permutations.iterator();
-    while (iterator.hasNext()) {
-      List<RouteStop> route = iterator.next();
-      Set<Request> pickUpRequests = passengerRequests(vehicle);
-      LatLng position = vehicle.currentPosition;
-      Instant time = vehicle.currentTime;
-      boolean valid = true;
-      for (RouteStop stop : route) {
-        if (stop.type == Type.PICK_UP) {
-          pickUpRequests.add(stop.request);
-        } else {
-          if (pickUpRequests.contains(stop.request)) {
-            pickUpRequests.remove(stop.request);
-          } else {
-            valid = false;
-          }
-        }
-        Duration drivingDuration = drivingDuration(position, stop.location());
-        time = time.plus(drivingDuration);
-        position = stop.location();
-        if (!stop.isValid(time)) {
-          valid = false;
-        }
-        if (!valid) {
-          iterator.remove();
-          break;
-        }
-      }
+    permutations.removeIf(routeStops -> pickUpAndDropOffIsOutOfOrder(vehicle, routeStops));
+    for (List<RouteStop> routeStops : permutations) {
+      boolean valid = routeIsValid(vehicle, routeStops);
       if (valid) {
         return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean routeIsValid(Vehicle vehicle, List<RouteStop> routeStops) {
+    LatLng position = vehicle.currentPosition;
+    Instant time = vehicle.currentTime;
+    boolean valid = true;
+    for (RouteStop stop : routeStops) {
+      Duration drivingDuration = drivingDuration(position, stop.location());
+      time = time.plus(drivingDuration);
+      position = stop.location();
+      if (!stop.isValid(time)) {
+        valid = false;
+        break;
+      }
+    }
+    return valid;
+  }
+
+  private static boolean pickUpAndDropOffIsOutOfOrder(Vehicle vehicle, List<RouteStop> routeStops) {
+    Set<Request> pickUpRequests = passengerRequests(vehicle);
+    for (RouteStop stop : routeStops) {
+      if (stop.type == Type.PICK_UP) {
+        pickUpRequests.add(stop.request);
+      } else {
+        if (pickUpRequests.contains(stop.request)) {
+          pickUpRequests.remove(stop.request);
+        } else {
+          return true;
+        }
       }
     }
     return false;
