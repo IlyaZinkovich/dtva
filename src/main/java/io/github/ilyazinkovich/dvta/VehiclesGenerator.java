@@ -2,6 +2,8 @@ package io.github.ilyazinkovich.dvta;
 
 import static java.util.stream.Collectors.toList;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -13,7 +15,9 @@ public class VehiclesGenerator {
 
   static List<Vehicle> generate(
       List<Request> requests, int vehiclesCount, int vehicleCapacity, Random random) {
-    return requests.stream().sorted((r1, r2) -> random.nextInt(3) - 1)
+    List<Request> copy = new ArrayList<>(requests);
+    Collections.shuffle(copy, random);
+    return copy.stream()
         .map(request -> createVehicle(vehicleCapacity, request))
         .limit(vehiclesCount).collect(toList());
   }
