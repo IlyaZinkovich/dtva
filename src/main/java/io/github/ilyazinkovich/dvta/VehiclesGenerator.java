@@ -10,9 +10,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class VehiclesGenerator {
 
   private static final AtomicInteger IDS = new AtomicInteger();
-  private static final Random random = new Random(12345);
 
-  static List<Vehicle> generate(List<Request> requests, int vehiclesCount, int vehicleCapacity) {
+  static List<Vehicle> generate(
+      List<Request> requests, int vehiclesCount, int vehicleCapacity, Random random) {
     return requests.stream().sorted((r1, r2) -> random.nextInt(3) - 1)
         .map(request -> createVehicle(vehicleCapacity, request))
         .limit(vehiclesCount).collect(toList());

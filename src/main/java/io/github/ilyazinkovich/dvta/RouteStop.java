@@ -1,6 +1,5 @@
 package io.github.ilyazinkovich.dvta;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -27,10 +26,8 @@ class RouteStop {
 
   public boolean isValid(Instant time) {
     if (type == Type.PICK_UP) {
-      System.out.println("PICK_UP - " + Duration.between(time, request.latestAcceptablePickUpTime));
       return !time.isAfter(request.latestAcceptablePickUpTime);
     } else {
-      System.out.println("DROP_OFF - " + Duration.between(time, request.earliestPossibleDropOffTime.plus(request.maxToleratedDelay)));
       return !time.isAfter(request.earliestPossibleDropOffTime.plus(request.maxToleratedDelay));
     }
   }

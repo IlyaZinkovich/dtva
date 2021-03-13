@@ -7,17 +7,20 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 public class App {
 
   public static void main(String[] args) {
+    Random random = new Random(12345);
     Duration maxWaitTime = Duration.ofMinutes(10);
     Duration maxToleratedDelay = Duration.ofMinutes(15);
     List<Request> requests = RequestsReader.read(maxWaitTime, maxToleratedDelay);
     int vehiclesCount = 10;
     int vehicleCapacity = 3;
-    List<Vehicle> vehicles = VehiclesGenerator.generate(requests, vehiclesCount, vehicleCapacity);
+    List<Vehicle> vehicles =
+        VehiclesGenerator.generate(requests, vehiclesCount, vehicleCapacity, random);
     RV rv = new RV(new HashMap<>(), new HashMap<>());
     for (Request r1 : requests) {
       for (Vehicle vehicle : vehicles) {
@@ -102,7 +105,8 @@ public class App {
   private static Double match(Request r1, Request r2) {
     Instant pickUpTime2 = r1.requestTime
         .plus(Routing.drivingTime(r1.origin, r2.origin));
-    if (pickUpTime2.isAfter(r2.latestAcceptablePickUpTime)) {
+    if (pickUpTime2.isAfter(r2.latestAcceptablePickUpTime)
+        || pickUpTime2.isBefore(r2.requestTime)) {
       return null;
     }
     Double cost = null;
@@ -130,14 +134,9 @@ public class App {
     return cost;
   }
 
-  private static double rrCost(
-      Request r1,
-      Request r2,
-      Instant dropOffTime1,
-      Instant dropOffTime2
-  ) {
+  private static double rrCost(Request r1, Request r2, Instant dropOffTime1, Instant dropOffTime2) {
     return (double) Duration.between(r1.earliestPossibleDropOffTime, dropOffTime1)
         .plus(Duration.between(r2.earliestPossibleDropOffTime, dropOffTime2))
-        .toSeconds();
+        .toMillis();
   }
 }
