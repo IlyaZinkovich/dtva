@@ -24,8 +24,9 @@ public class App {
     RV rv = new RV(new HashMap<>(), new HashMap<>());
     for (Request r1 : requests) {
       for (Vehicle vehicle : vehicles) {
-        if (travel(vehicle, r1)) {
-          rv.addVehicleToRequest(vehicle, r1);
+        final Double cost = travel(vehicle, r1);
+        if (cost != null) {
+          rv.addVehicleToRequest(vehicle, r1, cost);
         }
       }
       for (Request r2 : requests) {
@@ -39,33 +40,39 @@ public class App {
     }
   }
 
-  private static boolean travel(Vehicle vehicle, Request request) {
+  private static Double travel(Vehicle vehicle, Request request) {
     List<RouteStop> stops = routeStops(vehicle, request);
     Set<List<RouteStop>> permutations = Permutations.generate(stops, stops.size());
     permutations.removeIf(routeStops -> pickUpAndDropOffIsOutOfOrder(vehicle, routeStops));
+    Double cost = null;
     for (List<RouteStop> routeStops : permutations) {
-      boolean valid = routeIsValid(vehicle, routeStops);
-      if (valid) {
-        return true;
+      Double routeCost = routeCost(vehicle, routeStops);
+      if (routeCost != null) {
+        if (cost == null) {
+          cost = routeCost;
+        } else {
+          cost = Math.min(cost, routeCost);
+        }
       }
     }
-    return false;
+    return cost;
   }
 
-  private static boolean routeIsValid(Vehicle vehicle, List<RouteStop> routeStops) {
+  private static Double routeCost(Vehicle vehicle, List<RouteStop> routeStops) {
     LatLng position = vehicle.currentPosition;
     Instant time = vehicle.currentTime;
-    boolean valid = true;
+    double cost = 0.0D;
     for (RouteStop stop : routeStops) {
       Duration drivingDuration = Routing.drivingTime(position, stop.location());
       time = time.plus(drivingDuration);
       position = stop.location();
       if (!stop.isValid(time)) {
-        valid = false;
-        break;
+        return null;
+      } else {
+        cost += stop.delay(time).toSeconds();
       }
     }
-    return valid;
+    return cost;
   }
 
   private static boolean pickUpAndDropOffIsOutOfOrder(Vehicle vehicle, List<RouteStop> routeStops) {

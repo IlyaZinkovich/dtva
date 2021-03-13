@@ -1,18 +1,16 @@
 package io.github.ilyazinkovich.dvta;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 class RV {
 
   public final Map<Request, Map<Request, Double>> requestToRequestCost;
-  public final Map<Vehicle, Set<Request>> vehicleToRequestCost;
+  public final Map<Vehicle, Map<Request, Double>> vehicleToRequestCost;
 
   public RV(
       Map<Request, Map<Request, Double>> requestToRequestCost,
-      Map<Vehicle, Set<Request>> vehicleToRequestCost
+      Map<Vehicle, Map<Request, Double>> vehicleToRequestCost
   ) {
     this.requestToRequestCost = requestToRequestCost;
     this.vehicleToRequestCost = vehicleToRequestCost;
@@ -39,11 +37,11 @@ class RV {
     }
   }
 
-  public void addVehicleToRequest(Vehicle v, Request r) {
+  public void addVehicleToRequest(Vehicle v, Request r, Double cost) {
     if (!vehicleToRequestCost.containsKey(v)) {
-      vehicleToRequestCost.put(v, new HashSet<>());
+      vehicleToRequestCost.put(v, new HashMap<>());
     }
-    vehicleToRequestCost.get(v).add(r);
+    vehicleToRequestCost.get(v).put(r, cost);
   }
 
   @Override
