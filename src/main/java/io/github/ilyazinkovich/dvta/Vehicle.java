@@ -3,18 +3,18 @@ package io.github.ilyazinkovich.dvta;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 
 class Vehicle {
 
-  public final UUID id;
+  public final String id;
   public final LatLng currentPosition; // q
   public final Instant currentTime; // t
   public final Set<Passenger> passengers; // P
   public final int capacity; // v
 
   Vehicle(
-      UUID id, LatLng currentPosition,
+      String id,
+      LatLng currentPosition,
       Instant currentTime,
       Set<Passenger> passengers,
       int capacity

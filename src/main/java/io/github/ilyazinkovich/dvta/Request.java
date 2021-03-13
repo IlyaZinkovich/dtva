@@ -3,11 +3,10 @@ package io.github.ilyazinkovich.dvta;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
-import java.util.UUID;
 
 class Request {
 
-  public final UUID id;
+  public final String id;
   public final LatLng origin; // o
   public final LatLng destination; // d
   public final Instant requestTime; // tR
@@ -17,7 +16,7 @@ class Request {
   public final Duration maxToleratedDelay; // ∆ = tD - t*
 
   Request(
-      UUID id,
+      String id,
       LatLng origin,
       LatLng destination,
       Instant requestTime,
