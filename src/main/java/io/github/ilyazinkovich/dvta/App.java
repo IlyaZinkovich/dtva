@@ -4,6 +4,7 @@ import io.github.ilyazinkovich.dvta.RouteStop.Type;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -23,16 +24,53 @@ public class App {
     Random random = new Random(12345);
     Duration maxWaitTime = Duration.ofMinutes(10);
     Duration maxToleratedDelay = Duration.ofMinutes(15);
-    List<Request> requests = RequestsReader.read(maxWaitTime, maxToleratedDelay);
-    int vehiclesCount = 50;
+    List<Request> requests = RequestsReader.read(maxWaitTime, maxToleratedDelay).subList(0, 50);
+    int vehiclesCount = 20;
     int vehicleCapacity = 3;
     List<Vehicle> vehicles =
         VehiclesGenerator.generate(requests, vehiclesCount, vehicleCapacity, random);
     RV rv = createRV(requests, vehicles);
     RTV rtv = createRTV(rv);
-    System.out
-        .println(rtv.vehicleToTripCost.values().stream().mapToInt(m -> m.keySet().size()).sum());
+    List<Assignment> assignments = greedyAssignment(rtv);
+    System.out.println(assignments);
     executor.shutdown();
+  }
+
+  private static List<Assignment> greedyAssignment(RTV rtv) {
+    List<Assignment> candidates = new ArrayList<>();
+    rtv.vehicleToTripCost.forEach((vehicle, tripsWithCost) ->
+        tripsWithCost.forEach((trip, cost) ->
+            candidates.add(new Assignment(vehicle, trip, cost))
+        )
+    );
+    candidates.sort(Comparator.<Assignment, Integer>comparing(assignment -> assignment.trip.size())
+        .reversed()
+        .thenComparing(assignment -> assignment.cost));
+    Set<Request> assignedRequests = new HashSet<>();
+    Set<Vehicle> assignedVehicles = new HashSet<>();
+    List<Assignment> assignments = new ArrayList<>();
+    for (Assignment candidate : candidates) {
+      if (!(requestsAreAssigned(assignedRequests, candidate)
+          || vehicleIsAssigned(assignedVehicles, candidate))) {
+        assignments.add(candidate);
+        assignedRequests.addAll(candidate.trip);
+        assignedVehicles.add(candidate.vehicle);
+      }
+    }
+    return assignments;
+  }
+
+  private static boolean requestsAreAssigned(Set<Request> assignedRequests, Assignment assignment) {
+    for (Request request : assignment.trip) {
+      if (assignedRequests.contains(request)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean vehicleIsAssigned(Set<Vehicle> assignedVehicles, Assignment assignment) {
+    return assignedVehicles.contains(assignment.vehicle);
   }
 
   private static RTV createRTV(RV rv) {
