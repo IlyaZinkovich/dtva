@@ -26,7 +26,8 @@ public class RequestsReader {
         LatLng destination = new LatLng(Double.parseDouble(data[5]), Double.parseDouble(data[4]));
         Instant requestTime = LocalDateTime.parse(data[1], formatter).toInstant(ZoneOffset.UTC);
         Instant latestAcceptablePickUpTime = requestTime.plus(maxWaitTime);
-        Instant earliestPossibleDropOffTime = requestTime.plus(drivingTime(origin, destination));
+        Instant earliestPossibleDropOffTime =
+            requestTime.plus(Routing.drivingTime(origin, destination));
         requests.add(new Request(id, origin, destination, requestTime, latestAcceptablePickUpTime,
             earliestPossibleDropOffTime, maxToleratedDelay));
       }
@@ -34,12 +35,5 @@ public class RequestsReader {
       throw new RuntimeException("Unable to read file.", e);
     }
     return requests;
-  }
-
-  private static Duration drivingTime(LatLng origin, LatLng destination) {
-    double avgSpeedInKmH = 25.0;
-    double distanceKm =
-        StraightLine.distance(origin.lat, origin.lng, destination.lat, destination.lng);
-    return Duration.ofSeconds(Math.round(distanceKm * 1000 / (avgSpeedInKmH * 1000 / 3600)));
   }
 }

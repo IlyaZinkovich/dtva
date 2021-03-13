@@ -9,14 +9,14 @@ class Vehicle {
   public final String id;
   public final LatLng currentPosition; // q
   public final Instant currentTime; // t
-  public final Set<Passenger> passengers; // P
+  public final Set<Request> passengers; // P
   public final int capacity; // v
 
   Vehicle(
       String id,
       LatLng currentPosition,
       Instant currentTime,
-      Set<Passenger> passengers,
+      Set<Request> passengers,
       int capacity
   ) {
     this.id = id;

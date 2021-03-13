@@ -69,7 +69,7 @@ public class App {
   }
 
   private static boolean pickUpAndDropOffIsOutOfOrder(Vehicle vehicle, List<RouteStop> routeStops) {
-    Set<Request> pickUpRequests = passengerRequests(vehicle);
+    Set<Request> pickUpRequests = new HashSet<>(vehicle.passengers);
     for (RouteStop stop : routeStops) {
       if (stop.type == Type.PICK_UP) {
         pickUpRequests.add(stop.request);
@@ -86,20 +86,12 @@ public class App {
 
   private static List<RouteStop> routeStops(Vehicle vehicle, Request request) {
     List<RouteStop> stops = new ArrayList<>();
-    for (Passenger passenger : vehicle.passengers) {
-      stops.add(new RouteStop(passenger.request, Type.DROP_OFF));
+    for (Request passenger : vehicle.passengers) {
+      stops.add(new RouteStop(passenger, Type.DROP_OFF));
     }
     stops.add(new RouteStop(request, Type.PICK_UP));
     stops.add(new RouteStop(request, Type.DROP_OFF));
     return stops;
-  }
-
-  private static Set<Request> passengerRequests(Vehicle vehicle) {
-    Set<Request> pickUpRequests = new HashSet<>();
-    for (Passenger passenger : vehicle.passengers) {
-      pickUpRequests.add(passenger.request);
-    }
-    return pickUpRequests;
   }
 
   private static Double match(Request r1, Request r2) {
