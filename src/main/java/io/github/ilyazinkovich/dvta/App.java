@@ -21,27 +21,52 @@ public class App {
     int vehicleCapacity = 3;
     List<Vehicle> vehicles =
         VehiclesGenerator.generate(requests, vehiclesCount, vehicleCapacity, random);
-    RV rv = new RV(new HashMap<>(), new HashMap<>());
-    for (Request r1 : requests) {
-      for (Vehicle vehicle : vehicles) {
-        final Double cost = travel(vehicle, r1);
-        if (cost != null) {
-          rv.addVehicleToRequest(vehicle, r1, cost);
-        }
+    RV rv = createRV(requests, vehicles);
+    RTV rtv = createRTV(rv);
+  }
+
+  private static RTV createRTV(RV rv) {
+    RTV rtv = new RTV(new HashMap<>());
+    Set<Vehicle> rvVehicles = rv.vehicleToRequestCost.keySet();
+    for (Vehicle vehicle : rvVehicles) {
+      Set<Request> rvVehicleRequests = rv.vehicleToRequestCost.get(vehicle).keySet();
+      for (Request request : rvVehicleRequests) {
+        Set<Request> trip = new HashSet<>();
+        trip.add(request);
+        rtv.addVehicleToTrip(vehicle, trip, rv.vehicleToRequestCost.get(vehicle).get(request));
       }
-      for (Request r2 : requests) {
-        if (!r1.equals(r2)) {
-          Double cost = match(r1, r2);
-          if (cost != null) {
-            rv.addRequestToRequest(r1, r2, cost);
+      Set<Set<Request>> tripsOfSizeOne = new HashSet<>(rtv.vehicleToTripCost.get(vehicle).keySet());
+      for (Set<Request> t1 : tripsOfSizeOne) {
+        for (Set<Request> t2 : tripsOfSizeOne) {
+          if (!t1.equals(t2) && r1r2exist(rv, t1, t2)) {
+            Set<Request> tripOfSizeTwo = new HashSet<>();
+            tripOfSizeTwo.addAll(t1);
+            tripOfSizeTwo.addAll(t2);
+            Double cost = travel(vehicle, tripOfSizeTwo);
+            if (cost != null) {
+              rtv.addVehicleToTrip(vehicle, tripOfSizeTwo, cost);
+            }
           }
         }
       }
     }
+    return rtv;
   }
 
-  private static Double travel(Vehicle vehicle, Request request) {
-    List<RouteStop> stops = routeStops(vehicle, request);
+  private static boolean r1r2exist(RV rv, Set<Request> t1, Set<Request> t2) {
+    for (Request r1 : t1) {
+      for (Request r2 : t2) {
+        if (rv.requestToRequestCost.containsKey(r1)
+            && !rv.requestToRequestCost.get(r1).containsKey(r2)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  private static Double travel(Vehicle vehicle, Set<Request> requests) {
+    List<RouteStop> stops = routeStops(vehicle, requests);
     Set<List<RouteStop>> permutations = Permutations.generate(stops, stops.size());
     permutations.removeIf(routeStops -> pickUpAndDropOffIsOutOfOrder(vehicle, routeStops));
     Double cost = null;
@@ -56,6 +81,39 @@ public class App {
       }
     }
     return cost;
+  }
+
+  private static List<RouteStop> routeStops(Vehicle vehicle, Set<Request> requests) {
+    List<RouteStop> stops = new ArrayList<>();
+    for (Request passenger : vehicle.passengers) {
+      stops.add(new RouteStop(passenger, Type.DROP_OFF));
+    }
+    for (Request request : requests) {
+      stops.add(new RouteStop(request, Type.PICK_UP));
+      stops.add(new RouteStop(request, Type.DROP_OFF));
+    }
+    return stops;
+  }
+
+  private static RV createRV(List<Request> requests, List<Vehicle> vehicles) {
+    RV rv = new RV(new HashMap<>(), new HashMap<>());
+    for (Request r1 : requests) {
+      for (Vehicle vehicle : vehicles) {
+        Double cost = travel(vehicle, Set.of(r1));
+        if (cost != null) {
+          rv.addVehicleToRequest(vehicle, r1, cost);
+        }
+      }
+      for (Request r2 : requests) {
+        if (!r1.equals(r2)) {
+          Double cost = match(r1, r2);
+          if (cost != null) {
+            rv.addRequestToRequest(r1, r2, cost);
+          }
+        }
+      }
+    }
+    return rv;
   }
 
   private static Double routeCost(Vehicle vehicle, List<RouteStop> routeStops) {
@@ -89,16 +147,6 @@ public class App {
       }
     }
     return false;
-  }
-
-  private static List<RouteStop> routeStops(Vehicle vehicle, Request request) {
-    List<RouteStop> stops = new ArrayList<>();
-    for (Request passenger : vehicle.passengers) {
-      stops.add(new RouteStop(passenger, Type.DROP_OFF));
-    }
-    stops.add(new RouteStop(request, Type.PICK_UP));
-    stops.add(new RouteStop(request, Type.DROP_OFF));
-    return stops;
   }
 
   private static Double match(Request r1, Request r2) {
