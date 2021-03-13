@@ -9,6 +9,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public class App {
 
@@ -23,34 +27,70 @@ public class App {
         VehiclesGenerator.generate(requests, vehiclesCount, vehicleCapacity, random);
     RV rv = createRV(requests, vehicles);
     RTV rtv = createRTV(rv);
+    System.out.println(rtv.vehicleToTripCost.values().stream().mapToInt(m -> m.keySet().size()).sum());
   }
 
   private static RTV createRTV(RV rv) {
-    RTV rtv = new RTV(new HashMap<>());
+    RTV rtv = new RTV(new ConcurrentHashMap<>());
     Set<Vehicle> rvVehicles = rv.vehicleToRequestCost.keySet();
+    Executor executor = Executors.newFixedThreadPool(2);
+    List<CompletableFuture<Void>> futures = new ArrayList<>();
     for (Vehicle vehicle : rvVehicles) {
-      Set<Request> rvVehicleRequests = rv.vehicleToRequestCost.get(vehicle).keySet();
-      for (Request request : rvVehicleRequests) {
-        Set<Request> trip = new HashSet<>();
-        trip.add(request);
-        rtv.addVehicleToTrip(vehicle, trip, rv.vehicleToRequestCost.get(vehicle).get(request));
-      }
-      Set<Set<Request>> tripsOfSizeOne = new HashSet<>(rtv.vehicleToTripCost.get(vehicle).keySet());
-      for (Set<Request> t1 : tripsOfSizeOne) {
-        for (Set<Request> t2 : tripsOfSizeOne) {
-          if (!t1.equals(t2) && r1r2exist(rv, t1, t2)) {
-            Set<Request> tripOfSizeTwo = new HashSet<>();
-            tripOfSizeTwo.addAll(t1);
-            tripOfSizeTwo.addAll(t2);
-            Double cost = travel(vehicle, tripOfSizeTwo);
-            if (cost != null) {
-              rtv.addVehicleToTrip(vehicle, tripOfSizeTwo, cost);
-            }
+      CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+        addTripsOfSizeOne(rv, rtv, vehicle);
+        addTripsOfSizeTwo(rv, rtv, vehicle);
+        for (int k = 3; k <= vehicle.capacity; k++) {
+          addTripsOfSizeK(rv, rtv, vehicle, k);
+        }
+      }, executor);
+      futures.add(future);
+    }
+    CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
+    return rtv;
+  }
+
+  private static void addTripsOfSizeOne(RV rv, RTV rtv, Vehicle vehicle) {
+    Set<Request> rvVehicleRequests = rv.vehicleToRequestCost.get(vehicle).keySet();
+    for (Request request : rvVehicleRequests) {
+      Set<Request> trip = new HashSet<>();
+      trip.add(request);
+      rtv.addVehicleToTrip(vehicle, trip, rv.vehicleToRequestCost.get(vehicle).get(request));
+    }
+  }
+
+  private static void addTripsOfSizeTwo(RV rv, RTV rtv, Vehicle vehicle) {
+    Set<Set<Request>> tripsOfSizeOne = new HashSet<>(rtv.vehicleToTripCost.get(vehicle).keySet());
+    for (Set<Request> t1 : tripsOfSizeOne) {
+      for (Set<Request> t2 : tripsOfSizeOne) {
+        if (!t1.equals(t2) && r1r2exist(rv, t1, t2)) {
+          Set<Request> tripOfSizeTwo = new HashSet<>();
+          tripOfSizeTwo.addAll(t1);
+          tripOfSizeTwo.addAll(t2);
+          Double cost = travel(vehicle, tripOfSizeTwo);
+          if (cost != null) {
+            rtv.addVehicleToTrip(vehicle, tripOfSizeTwo, cost);
           }
         }
       }
     }
-    return rtv;
+  }
+
+  private static void addTripsOfSizeK(RV rv, RTV rtv, Vehicle vehicle, int k) {
+    Set<Set<Request>> tripsOfSizeLessThanK =
+        new HashSet<>(rtv.vehicleToTripCost.get(vehicle).keySet());
+    for (Set<Request> t1 : tripsOfSizeLessThanK) {
+      for (Set<Request> t2 : tripsOfSizeLessThanK) {
+        if (!t1.equals(t2) && t1.size() + t2.size() == k && r1r2exist(rv, t1, t2)) {
+          Set<Request> tripOfSizeK = new HashSet<>();
+          tripOfSizeK.addAll(t1);
+          tripOfSizeK.addAll(t2);
+          Double cost = travel(vehicle, tripOfSizeK);
+          if (cost != null) {
+            rtv.addVehicleToTrip(vehicle, tripOfSizeK, cost);
+          }
+        }
+      }
+    }
   }
 
   private static boolean r1r2exist(RV rv, Set<Request> t1, Set<Request> t2) {
