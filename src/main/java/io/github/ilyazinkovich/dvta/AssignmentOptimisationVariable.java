@@ -1,16 +1,19 @@
 package io.github.ilyazinkovich.dvta;
 
+import com.google.ortools.linearsolver.MPVariable;
 import java.util.Objects;
 import java.util.Set;
 
-public class Assignment {
+public class AssignmentOptimisationVariable {
 
   public final Vehicle vehicle;
   public final Set<Request> trip;
+  public final MPVariable variable;
 
-  public Assignment(Vehicle vehicle, Set<Request> trip) {
-    this.vehicle = vehicle;
+  public AssignmentOptimisationVariable(Vehicle vehicle, Set<Request> trip, MPVariable variable) {
     this.trip = trip;
+    this.vehicle = vehicle;
+    this.variable = variable;
   }
 
   @Override
@@ -21,9 +24,9 @@ public class Assignment {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final Assignment that = (Assignment) o;
-    return Objects.equals(vehicle, that.vehicle) && Objects
-        .equals(trip, that.trip);
+    final AssignmentOptimisationVariable that = (AssignmentOptimisationVariable) o;
+    return Objects.equals(vehicle, that.vehicle)
+        && Objects.equals(trip, that.trip);
   }
 
   @Override
@@ -33,9 +36,10 @@ public class Assignment {
 
   @Override
   public String toString() {
-    return "Assignment{" +
+    return "AssignmentOptimisationVariable{" +
         "vehicle=" + vehicle +
         ", trip=" + trip +
+        ", variable=" + variable.name() +
         '}';
   }
 }

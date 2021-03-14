@@ -1,5 +1,7 @@
 package io.github.ilyazinkovich.dvta;
 
+import static java.util.stream.Collectors.toList;
+
 import com.google.ortools.linearsolver.MPConstraint;
 import com.google.ortools.linearsolver.MPObjective;
 import com.google.ortools.linearsolver.MPSolver;
@@ -33,13 +35,15 @@ public class App {
     Duration maxToleratedDelay = Duration.ofMinutes(15);
     List<Request> requests = RequestsReader.read(maxWaitTime, maxToleratedDelay);
     int vehiclesCount = 20;
-    int vehicleCapacity = 2;
+    int vehicleCapacity = 3;
     List<Vehicle> vehicles =
         VehiclesGenerator.generate(requests, vehiclesCount, vehicleCapacity, random);
     RV rv = createRV(requests, vehicles);
     RTV rtv = createRTV(rv);
-    List<Assignment> assignments = greedyAssignment(rtv);
-    System.out.println(assignments);
+    List<Assignment> greedyAssignment = greedyAssignment(rtv);
+    double greedyCost = greedyAssignment.stream().mapToDouble(assignment ->
+        rtv.vehicleToTripCost.get(assignment.vehicle).get(assignment.trip)).sum();
+    System.out.println("Greedy cost: " + greedyCost);
     MPSolver solver = MPSolver.createSolver("SCIP");
     if (solver == null) {
       System.out.println("Could not create solver SCIP");
@@ -50,13 +54,14 @@ public class App {
         .max(Comparator.naturalOrder())
         .orElse(0.0D);
     MPObjective objective = solver.objective();
-    List<MPVariable> variables = new ArrayList<>();
+    List<AssignmentOptimisationVariable> assignmentOptimisationVariables = new ArrayList<>();
     Map<Request, Set<MPVariable>> requestToAssignmentVariable = new HashMap<>();
     rtv.vehicleToTripCost.forEach((vehicle, tripsWithCost) -> {
       MPConstraint mpConstraint = solver.makeConstraint();
       tripsWithCost.forEach((trip, cost) -> {
         MPVariable mpVariable = solver.makeIntVar(0, 1, "ε-" + trip + "-" + vehicle);
-        variables.add(mpVariable);
+        assignmentOptimisationVariables.add(
+            new AssignmentOptimisationVariable(vehicle, trip, mpVariable));
         objective.setCoefficient(mpVariable, cost);
         mpConstraint.setCoefficient(mpVariable, 1);
         for (Request request : trip) {
@@ -70,7 +75,6 @@ public class App {
     });
     for (Request request : requests) {
       MPVariable mpVariable = solver.makeIntVar(0, 1, "χ-" + request.id);
-      variables.add(mpVariable);
       objective.setCoefficient(mpVariable, maxCost * 2);
       MPConstraint mpConstraint = solver.makeConstraint();
       mpConstraint.setCoefficient(mpVariable, 1);
@@ -82,40 +86,46 @@ public class App {
       mpConstraint.setBounds(1, 1);
     }
     objective.setMinimization();
-    solver.enableOutput();
     MPSolver.ResultStatus resultStatus = solver.solve();
-    variables.forEach(variable -> {
-      System.out.println(variable.name() + " " + variable.solutionValue());
-    });
+    System.out.println(resultStatus);
+    List<Assignment> assignments = assignmentOptimisationVariables.stream()
+        .filter(a -> a.variable.solutionValue() > 0)
+        .map(a -> new Assignment(a.vehicle, a.trip))
+        .collect(toList());
+    double optimalCost = assignments.stream().mapToDouble(assignment ->
+        rtv.vehicleToTripCost.get(assignment.vehicle).get(assignment.trip)).sum();
+    System.out.println("Optimal cost: " + optimalCost);
     executor.shutdown();
   }
 
   private static List<Assignment> greedyAssignment(RTV rtv) {
-    List<Assignment> candidates = new ArrayList<>();
+    List<AssignmentCandidate> candidates = new ArrayList<>();
     rtv.vehicleToTripCost.forEach((vehicle, tripsWithCost) ->
         tripsWithCost.forEach((trip, cost) ->
-            candidates.add(new Assignment(vehicle, trip, cost))
+            candidates.add(new AssignmentCandidate(vehicle, trip, cost))
         )
     );
-    candidates.sort(Comparator.<Assignment, Integer>comparing(assignment -> assignment.trip.size())
+    candidates.sort(Comparator.<AssignmentCandidate, Integer>comparing(
+        assignmentCandidate -> assignmentCandidate.trip.size())
         .reversed()
-        .thenComparing(assignment -> assignment.cost));
+        .thenComparing(assignmentCandidate -> assignmentCandidate.cost));
     Set<Request> assignedRequests = new HashSet<>();
     Set<Vehicle> assignedVehicles = new HashSet<>();
-    List<Assignment> assignments = new ArrayList<>();
-    for (Assignment candidate : candidates) {
+    List<Assignment> assignmentCandidates = new ArrayList<>();
+    for (AssignmentCandidate candidate : candidates) {
       if (!(requestsAreAssigned(assignedRequests, candidate)
           || vehicleIsAssigned(assignedVehicles, candidate))) {
-        assignments.add(candidate);
+        assignmentCandidates.add(new Assignment(candidate.vehicle, candidate.trip));
         assignedRequests.addAll(candidate.trip);
         assignedVehicles.add(candidate.vehicle);
       }
     }
-    return assignments;
+    return assignmentCandidates;
   }
 
-  private static boolean requestsAreAssigned(Set<Request> assignedRequests, Assignment assignment) {
-    for (Request request : assignment.trip) {
+  private static boolean requestsAreAssigned(Set<Request> assignedRequests,
+      AssignmentCandidate assignmentCandidate) {
+    for (Request request : assignmentCandidate.trip) {
       if (assignedRequests.contains(request)) {
         return true;
       }
@@ -123,8 +133,9 @@ public class App {
     return false;
   }
 
-  private static boolean vehicleIsAssigned(Set<Vehicle> assignedVehicles, Assignment assignment) {
-    return assignedVehicles.contains(assignment.vehicle);
+  private static boolean vehicleIsAssigned(Set<Vehicle> assignedVehicles,
+      AssignmentCandidate assignmentCandidate) {
+    return assignedVehicles.contains(assignmentCandidate.vehicle);
   }
 
   private static RTV createRTV(RV rv) {
