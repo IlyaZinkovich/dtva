@@ -106,12 +106,4 @@ class RV {
     }
     vehicleToRequestCost.get(v).put(r, cost);
   }
-
-  @Override
-  public String toString() {
-    return "RV{" +
-        "requestToRequestCost=" + requestToRequestCost +
-        ", vehicleToRequestCost=" + vehicleToRequestCost +
-        '}';
-  }
 }

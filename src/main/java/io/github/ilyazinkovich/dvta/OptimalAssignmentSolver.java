@@ -8,9 +8,9 @@ import com.google.ortools.linearsolver.MPSolver;
 import com.google.ortools.linearsolver.MPSolver.ResultStatus;
 import com.google.ortools.linearsolver.MPVariable;
 import com.skaggsm.ortools.OrToolsHelper;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -31,7 +31,7 @@ public class OptimalAssignmentSolver {
 
   static Map<Vehicle, Set<Request>> solve(List<Request> requests, RTV rtv,
       Map<Vehicle, Set<Request>> greedyAssignment) {
-    double noAssignmentPenalty = noAssignmentPenalty(rtv);
+    double noAssignmentPenalty = AssignmentCost.penalty(rtv);
     MPObjective objective = mipSolver.objective();
     List<AssignmentOptimisationVariable> assignmentOptimisationVariables = new ArrayList<>();
     Map<Request, Set<MPVariable>> requestToAssignmentVariable = new HashMap<>();
@@ -61,8 +61,9 @@ public class OptimalAssignmentSolver {
       mpConstraint.setBounds(1, 1);
     }
     objective.setMinimization();
+    mipSolver.setTimeLimit(Duration.ofSeconds(30).toMillis());
     MPSolver.ResultStatus resultStatus = mipSolver.solve();
-    if (ResultStatus.OPTIMAL == resultStatus) {
+    if (ResultStatus.OPTIMAL == resultStatus || ResultStatus.FEASIBLE == resultStatus) {
       return assignmentOptimisationVariables.stream()
           .filter(a -> a.variable.solutionValue() > 0)
           .collect(toMap(a -> a.vehicle, a -> a.trip, (left, right) -> left));
@@ -80,14 +81,6 @@ public class OptimalAssignmentSolver {
       }
       requestToAssignmentVariables.get(request).add(mpVariable);
     }
-  }
-
-  private static double noAssignmentPenalty(RTV rtv) {
-    double maxCost = rtv.vehicleToTripCost.values().stream()
-        .flatMap(tripCosts -> tripCosts.values().stream())
-        .max(Comparator.naturalOrder())
-        .orElse(0.0D);
-    return maxCost * 2;
   }
 
   private static void setInitialSolution(Map<Vehicle, Set<Request>> greedyAssignment,

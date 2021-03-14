@@ -17,24 +17,19 @@ public class App {
     Duration maxWaitTime = Duration.ofMinutes(10);
     Duration maxToleratedDelay = Duration.ofMinutes(15);
     List<Request> requests = RequestsReader.read(maxWaitTime, maxToleratedDelay);
-    int vehiclesCount = 20;
+    int vehiclesCount = 150;
     int vehicleCapacity = 2;
     List<Vehicle> vehicles =
         VehiclesGenerator.generate(requests, vehiclesCount, vehicleCapacity, random);
     RV rv = RV.create(requests, vehicles);
     RTV rtv = RTV.create(rv, executor);
     Map<Vehicle, Set<Request>> greedyAssignment = GreedyAssignmentSolver.solve(rtv);
-    double greedyCost = assignmentsCost(rtv, greedyAssignment);
+    double greedyCost = AssignmentCost.calculate(rtv, greedyAssignment, requests.size());
     System.out.println("Greedy cost: " + greedyCost);
-    Map<Vehicle, Set<Request>> optimalAssignments =
+    Map<Vehicle, Set<Request>> optimalAssignment =
         OptimalAssignmentSolver.solve(requests, rtv, greedyAssignment);
-    double optimalCost = assignmentsCost(rtv, optimalAssignments);
+    double optimalCost = AssignmentCost.calculate(rtv, optimalAssignment, requests.size());
     System.out.println("Optimal cost: " + optimalCost);
     executor.shutdown();
-  }
-
-  private static double assignmentsCost(RTV rtv, Map<Vehicle, Set<Request>> assignments) {
-    return assignments.entrySet().stream().mapToDouble(assignment ->
-        rtv.vehicleToTripCost.get(assignment.getKey()).get(assignment.getValue())).sum();
   }
 }

@@ -23,16 +23,16 @@ public class GreedyAssignmentSolver {
         .thenComparing(assignmentCandidate -> assignmentCandidate.cost));
     Set<Request> assignedRequests = new HashSet<>();
     Set<Vehicle> assignedVehicles = new HashSet<>();
-    Map<Vehicle, Set<Request>> assignments = new HashMap<>();
+    Map<Vehicle, Set<Request>> assignment = new HashMap<>();
     for (AssignmentCandidate candidate : candidates) {
       if (!(requestsAreAssigned(assignedRequests, candidate)
           || vehicleIsAssigned(assignedVehicles, candidate))) {
-        assignments.put(candidate.vehicle, candidate.trip);
+        assignment.put(candidate.vehicle, candidate.trip);
         assignedRequests.addAll(candidate.trip);
         assignedVehicles.add(candidate.vehicle);
       }
     }
-    return assignments;
+    return assignment;
   }
 
   private static boolean requestsAreAssigned(Set<Request> assignedRequests,
