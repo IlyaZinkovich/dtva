@@ -1,18 +1,9 @@
 package io.github.ilyazinkovich.dvta;
 
-import static java.util.stream.Collectors.toMap;
-
-import com.google.ortools.linearsolver.MPConstraint;
-import com.google.ortools.linearsolver.MPObjective;
-import com.google.ortools.linearsolver.MPSolver;
-import com.google.ortools.linearsolver.MPVariable;
-import com.skaggsm.ortools.OrToolsHelper;
 import io.github.ilyazinkovich.dvta.RouteStop.Type;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -23,7 +14,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.DoubleStream;
 
 public class App {
 
@@ -31,7 +21,6 @@ public class App {
       Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
   public static void main(String[] args) {
-    OrToolsHelper.loadLibrary();
     Random random = new Random(12345);
     Duration maxWaitTime = Duration.ofMinutes(10);
     Duration maxToleratedDelay = Duration.ofMinutes(15);
@@ -45,62 +34,8 @@ public class App {
     Map<Vehicle, Set<Request>> greedyAssignment = GreedyAssignmentSolver.solve(rtv);
     double greedyCost = assignmentsCost(rtv, greedyAssignment);
     System.out.println("Greedy cost: " + greedyCost);
-    MPSolver solver = MPSolver.createSolver("SCIP");
-    if (solver == null) {
-      System.out.println("Could not create solver SCIP");
-      return;
-    }
-    double maxCost = rtv.vehicleToTripCost.values().stream()
-        .flatMap(tripCosts -> tripCosts.values().stream())
-        .max(Comparator.naturalOrder())
-        .orElse(0.0D);
-    MPObjective objective = solver.objective();
-    List<AssignmentOptimisationVariable> assignmentOptimisationVariables = new ArrayList<>();
-    Map<Request, Set<MPVariable>> requestToAssignmentVariable = new HashMap<>();
-    rtv.vehicleToTripCost.forEach((vehicle, tripsWithCost) -> {
-      MPConstraint mpConstraint = solver.makeConstraint();
-      tripsWithCost.forEach((trip, cost) -> {
-        MPVariable mpVariable = solver.makeIntVar(0, 1, "ε-" + trip + "-" + vehicle);
-        assignmentOptimisationVariables.add(
-            new AssignmentOptimisationVariable(vehicle, trip, mpVariable));
-        objective.setCoefficient(mpVariable, cost);
-        mpConstraint.setCoefficient(mpVariable, 1);
-        for (Request request : trip) {
-          if (!requestToAssignmentVariable.containsKey(request)) {
-            requestToAssignmentVariable.put(request, new HashSet<>());
-          }
-          requestToAssignmentVariable.get(request).add(mpVariable);
-        }
-      });
-      mpConstraint.setUb(1);
-    });
-    MPVariable[] initialSolution = assignmentOptimisationVariables.stream()
-        .filter(a -> a.trip.equals(greedyAssignment.get(a.vehicle)))
-        .map(a -> a.variable)
-        .toArray(MPVariable[]::new);
-    double[] initialSolutionValues = new double[initialSolution.length];
-    Arrays.fill(initialSolutionValues, 1.0D);
-    solver.setHint(initialSolution, initialSolutionValues);
-    for (Request request : requests) {
-      MPVariable mpVariable = solver.makeIntVar(0, 1, "χ-" + request.id);
-      objective.setCoefficient(mpVariable, maxCost * 2);
-      MPConstraint mpConstraint = solver.makeConstraint();
-      mpConstraint.setCoefficient(mpVariable, 1);
-      if (requestToAssignmentVariable.containsKey(request)) {
-        requestToAssignmentVariable.get(request).forEach(assignmentVariable -> {
-          mpConstraint.setCoefficient(assignmentVariable, 1);
-        });
-      }
-      mpConstraint.setBounds(1, 1);
-    }
-    objective.setMinimization();
-    long start = System.currentTimeMillis();
-    MPSolver.ResultStatus resultStatus = solver.solve();
-    System.out.println(System.currentTimeMillis() - start);
-    System.out.println(resultStatus);
-    Map<Vehicle, Set<Request>> optimalAssignments = assignmentOptimisationVariables.stream()
-        .filter(a -> a.variable.solutionValue() > 0)
-        .collect(toMap(a -> a.vehicle, a -> a.trip, (left, right) -> left));
+    Map<Vehicle, Set<Request>> optimalAssignments =
+        OptimalAssignmentSolver.solve(requests, rtv, greedyAssignment);
     double optimalCost = assignmentsCost(rtv, optimalAssignments);
     System.out.println("Optimal cost: " + optimalCost);
     executor.shutdown();
