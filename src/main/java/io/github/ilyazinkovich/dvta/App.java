@@ -1,5 +1,10 @@
 package io.github.ilyazinkovich.dvta;
 
+import com.google.ortools.linearsolver.MPConstraint;
+import com.google.ortools.linearsolver.MPObjective;
+import com.google.ortools.linearsolver.MPSolver;
+import com.google.ortools.linearsolver.MPVariable;
+import com.skaggsm.ortools.OrToolsHelper;
 import io.github.ilyazinkovich.dvta.RouteStop.Type;
 import java.time.Duration;
 import java.time.Instant;
@@ -8,6 +13,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -21,18 +27,66 @@ public class App {
       Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
   public static void main(String[] args) {
+    OrToolsHelper.loadLibrary();
     Random random = new Random(12345);
     Duration maxWaitTime = Duration.ofMinutes(10);
     Duration maxToleratedDelay = Duration.ofMinutes(15);
-    List<Request> requests = RequestsReader.read(maxWaitTime, maxToleratedDelay).subList(0, 50);
+    List<Request> requests = RequestsReader.read(maxWaitTime, maxToleratedDelay);
     int vehiclesCount = 20;
-    int vehicleCapacity = 3;
+    int vehicleCapacity = 2;
     List<Vehicle> vehicles =
         VehiclesGenerator.generate(requests, vehiclesCount, vehicleCapacity, random);
     RV rv = createRV(requests, vehicles);
     RTV rtv = createRTV(rv);
     List<Assignment> assignments = greedyAssignment(rtv);
     System.out.println(assignments);
+    MPSolver solver = MPSolver.createSolver("SCIP");
+    if (solver == null) {
+      System.out.println("Could not create solver SCIP");
+      return;
+    }
+    double maxCost = rtv.vehicleToTripCost.values().stream()
+        .flatMap(tripCosts -> tripCosts.values().stream())
+        .max(Comparator.naturalOrder())
+        .orElse(0.0D);
+    MPObjective objective = solver.objective();
+    List<MPVariable> variables = new ArrayList<>();
+    Map<Request, Set<MPVariable>> requestToAssignmentVariable = new HashMap<>();
+    rtv.vehicleToTripCost.forEach((vehicle, tripsWithCost) -> {
+      MPConstraint mpConstraint = solver.makeConstraint();
+      tripsWithCost.forEach((trip, cost) -> {
+        MPVariable mpVariable = solver.makeIntVar(0, 1, "ε-" + trip + "-" + vehicle);
+        variables.add(mpVariable);
+        objective.setCoefficient(mpVariable, cost);
+        mpConstraint.setCoefficient(mpVariable, 1);
+        for (Request request : trip) {
+          if (!requestToAssignmentVariable.containsKey(request)) {
+            requestToAssignmentVariable.put(request, new HashSet<>());
+          }
+          requestToAssignmentVariable.get(request).add(mpVariable);
+        }
+      });
+      mpConstraint.setUb(1);
+    });
+    for (Request request : requests) {
+      MPVariable mpVariable = solver.makeIntVar(0, 1, "χ-" + request.id);
+      variables.add(mpVariable);
+      objective.setCoefficient(mpVariable, maxCost * 2);
+      MPConstraint mpConstraint = solver.makeConstraint();
+      mpConstraint.setCoefficient(mpVariable, 1);
+      if (requestToAssignmentVariable.containsKey(request)) {
+        requestToAssignmentVariable.get(request).forEach(assignmentVariable -> {
+          mpConstraint.setCoefficient(assignmentVariable, 1);
+        });
+      }
+      mpConstraint.setBounds(1, 1);
+    }
+    objective.setMinimization();
+    solver.enableOutput();
+    MPSolver.ResultStatus resultStatus = solver.solve();
+    variables.forEach(variable -> {
+      System.out.println(variable.name() + " " + variable.solutionValue());
+    });
     executor.shutdown();
   }
 
