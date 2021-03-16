@@ -9,7 +9,9 @@ class Request {
 
   public final String id;
   public final LatLng pickUpLocation;
+  public final Integer pickUpLocationId;
   public final LatLng dropOffLocation;
+  public final Integer dropOffLocationId;
   public final Instant requestTime;
   public final Instant dispatchTimeout;
   public final Instant pickUpTimeWindowStart;
@@ -25,7 +27,9 @@ class Request {
   /**
    * @param id unique request identifier
    * @param pickUpLocation pick-up geolocation
+   * @param pickUpLocationId unique identifier of the pick-up location
    * @param dropOffLocation drop-off geolocation
+   * @param dropOffLocationId unique identifier of the drop-off location
    * @param requestTime time when the request was made
    * @param dispatchTimeout limit on dispatching time
    * @param pickUpTimeWindowStart time when the request becomes ready for pick-up
@@ -40,7 +44,9 @@ class Request {
    */
   Request(String id,
       LatLng pickUpLocation,
+      Integer pickUpLocationId,
       LatLng dropOffLocation,
+      Integer dropOffLocationId,
       Instant requestTime,
       Instant dispatchTimeout,
       Instant pickUpTimeWindowStart,
@@ -54,7 +60,9 @@ class Request {
       List<Capacity> requiredCapacities) {
     this.id = id;
     this.pickUpLocation = pickUpLocation;
+    this.pickUpLocationId = pickUpLocationId;
     this.dropOffLocation = dropOffLocation;
+    this.dropOffLocationId = dropOffLocationId;
     this.requestTime = requestTime;
     this.dispatchTimeout = dispatchTimeout;
     this.pickUpTimeWindowStart = pickUpTimeWindowStart;
@@ -90,7 +98,9 @@ class Request {
     return "Request{" +
         "id='" + id + '\'' +
         ", pickUpLocation=" + pickUpLocation +
+        ", pickUpLocationId=" + pickUpLocationId +
         ", dropOffLocation=" + dropOffLocation +
+        ", dropOffLocationId=" + dropOffLocationId +
         ", requestTime=" + requestTime +
         ", dispatchTimeout=" + dispatchTimeout +
         ", pickUpTimeWindowStart=" + pickUpTimeWindowStart +

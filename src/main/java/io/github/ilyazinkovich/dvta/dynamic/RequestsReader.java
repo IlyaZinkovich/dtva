@@ -26,8 +26,12 @@ class RequestsReader {
         String line = scanner.nextLine();
         String[] data = line.split(",");
         String id = data[0];
-        LatLng origin = new LatLng(Double.parseDouble(data[3]), Double.parseDouble(data[2]));
-        LatLng destination = new LatLng(Double.parseDouble(data[5]), Double.parseDouble(data[4]));
+        LatLng pickUpLocation = new LatLng(Double.parseDouble(data[3]),
+            Double.parseDouble(data[2]));
+        Integer pickUpLocationId = pickUpLocation.hashCode();
+        LatLng dropOffLocation = new LatLng(Double.parseDouble(data[5]),
+            Double.parseDouble(data[4]));
+        Integer dropOffLocationId = dropOffLocation.hashCode();
         Instant requestTime = LocalDateTime.parse(data[1], formatter).toInstant(ZoneOffset.UTC);
         Instant dispatchTimeout = requestTime.plus(maxDispatchTime);
         Instant pickUpTimeWindowStart = requestTime.plus(Duration.ofMinutes(random.nextInt(15)));
@@ -39,14 +43,14 @@ class RequestsReader {
         Duration dropOffServiceTime = Duration.ofMinutes(random.nextInt(3) + 2L);
         Instant dropOffTimeTarget = pickUpTimeWindowStart
             .plus(pickUpServiceTime)
-            .plus(drivingTime(origin, destination))
+            .plus(drivingTime(pickUpLocation, dropOffLocation))
             .plus(dropOffServiceTime)
             .plus(deliveryTimeBuffer);
         List<Capacity> requiredCapacities = List.of(new Capacity(1, Unit.SEAT));
-        requests.add(new Request(id, origin, destination, requestTime, dispatchTimeout,
-            pickUpTimeWindowStart, pickUpTimeWindowEnd, pickUpQueueTime, pickUpServiceTime,
-            dropOffTimeWindowStart, dropOffTimeWindowEnd, dropOffServiceTime, dropOffTimeTarget,
-            requiredCapacities));
+        requests.add(new Request(id, pickUpLocation, pickUpLocationId, dropOffLocation,
+            dropOffLocationId, requestTime, dispatchTimeout, pickUpTimeWindowStart,
+            pickUpTimeWindowEnd, pickUpQueueTime, pickUpServiceTime, dropOffTimeWindowStart,
+            dropOffTimeWindowEnd, dropOffServiceTime, dropOffTimeTarget, requiredCapacities));
       }
     } catch (IOException e) {
       throw new RuntimeException("Unable to read file.", e);
