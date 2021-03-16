@@ -1,6 +1,6 @@
-package io.github.ilyazinkovich.dvta;
+package io.github.ilyazinkovich.dvta.static_;
 
-import io.github.ilyazinkovich.dvta.RouteStop.Type;
+import io.github.ilyazinkovich.dvta.static_.RouteStop.Type;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;

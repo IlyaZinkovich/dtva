@@ -1,4 +1,4 @@
-package io.github.ilyazinkovich.dvta;
+package io.github.ilyazinkovich.dvta.static_;
 
 import static java.util.stream.Collectors.toList;
 

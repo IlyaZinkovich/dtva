@@ -1,4 +1,4 @@
-package io.github.ilyazinkovich.dvta;
+package io.github.ilyazinkovich.dvta.static_;
 
 import java.io.IOException;
 import java.nio.file.Paths;

@@ -1,4 +1,4 @@
-package io.github.ilyazinkovich.dvta;
+package io.github.ilyazinkovich.dvta.static_;
 
 import com.google.ortools.linearsolver.MPVariable;
 import java.util.Objects;
