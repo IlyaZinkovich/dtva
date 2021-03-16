@@ -5,6 +5,12 @@ plugins {
 group 'io.github.ilyazinkovich'
 version '1.0-SNAPSHOT'
 
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(11))
+    }
+}
+
 repositories {
     mavenCentral()
     jcenter()
