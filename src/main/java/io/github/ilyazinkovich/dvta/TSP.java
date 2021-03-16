@@ -4,13 +4,20 @@ import io.github.ilyazinkovich.dvta.RouteStop.Type;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class TSP {
 
+  static Map<Vehicle, Map<Set<Request>, Double>> cache = new HashMap<>();
+
   static Double travel(Vehicle vehicle, Set<Request> requests) {
+    if (cache.get(vehicle) != null && cache.get(vehicle).get(requests) != null) {
+      return cache.get(vehicle).get(requests);
+    }
     List<RouteStop> stops = routeStops(vehicle, requests);
     Set<List<RouteStop>> permutations = Permutations.generate(stops, stops.size());
     permutations.removeIf(routeStops -> pickUpAndDropOffIsOutOfOrder(vehicle, routeStops));
@@ -25,6 +32,10 @@ public class TSP {
         }
       }
     }
+    if (!cache.containsKey(vehicle)) {
+      cache.put(vehicle, new HashMap<>());
+    }
+    cache.get(vehicle).put(requests, cost);
     return cost;
   }
 

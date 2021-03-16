@@ -2,7 +2,7 @@ package io.github.ilyazinkovich.dvta;
 
 import java.util.Objects;
 
-class LatLng {
+public class LatLng {
 
   public final double lat;
   public final double lng;

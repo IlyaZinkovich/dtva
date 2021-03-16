@@ -16,9 +16,9 @@ public class App {
     Random random = new Random(12345);
     Duration maxWaitTime = Duration.ofMinutes(10);
     Duration maxToleratedDelay = Duration.ofMinutes(15);
-    List<Request> requests = RequestsReader.read(maxWaitTime, maxToleratedDelay);
-    int vehiclesCount = 150;
-    int vehicleCapacity = 2;
+    List<Request> requests = RequestsReader.read(maxWaitTime, maxToleratedDelay).subList(0, 90);
+    int vehiclesCount = 30;
+    int vehicleCapacity = 3;
     List<Vehicle> vehicles =
         VehiclesGenerator.generate(requests, vehiclesCount, vehicleCapacity, random);
     RV rv = RV.create(requests, vehicles);
