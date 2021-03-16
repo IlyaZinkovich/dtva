@@ -21,8 +21,9 @@ public class App {
     int vehicleCapacity = 3;
     List<Vehicle> vehicles =
         VehiclesGenerator.generate(requests, vehiclesCount, vehicleCapacity, random);
+    RR rr = RR.create(requests);
     RV rv = RV.create(requests, vehicles);
-    RTV rtv = RTV.create(rv, executor);
+    RTV rtv = RTV.create(rr, rv, executor);
     Map<Vehicle, Set<Request>> greedyAssignment = GreedyAssignmentSolver.solve(rtv);
     double greedyCost = AssignmentCost.calculate(rtv, greedyAssignment, requests.size());
     System.out.println("Greedy cost: " + greedyCost);

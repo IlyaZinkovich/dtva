@@ -18,7 +18,7 @@ public class RTV {
     this.vehicleToTripCost = vehicleToTripCost;
   }
 
-  static RTV create(RV rv, Executor executor) {
+  static RTV create(RR rr, RV rv, Executor executor) {
     RTV rtv = new RTV(new ConcurrentHashMap<>());
     Set<Vehicle> rvVehicles = rv.vehicleToRequestCost.keySet();
     List<CompletableFuture<Void>> futures = new ArrayList<>();
@@ -26,7 +26,7 @@ public class RTV {
       CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
         addTripsOfSizeOne(rv, rtv, vehicle);
         for (int k = 2; k <= vehicle.capacity; k++) {
-          addTripsOfSizeK(rv, rtv, vehicle, k);
+          addTripsOfSizeK(rr, rtv, vehicle, k);
         }
       }, executor);
       futures.add(future);
@@ -44,12 +44,12 @@ public class RTV {
     }
   }
 
-  private static void addTripsOfSizeK(RV rv, RTV rtv, Vehicle vehicle, int k) {
+  private static void addTripsOfSizeK(RR rr, RTV rtv, Vehicle vehicle, int k) {
     Set<Set<Request>> tripsOfSizeLessThanK =
         new HashSet<>(rtv.vehicleToTripCost.get(vehicle).keySet());
     for (Set<Request> t1 : tripsOfSizeLessThanK) {
       for (Set<Request> t2 : tripsOfSizeLessThanK) {
-        if (!t1.equals(t2) && t1.size() + t2.size() == k && r1r2exist(rv, t1, t2)) {
+        if (!t1.equals(t2) && t1.size() + t2.size() == k && r1r2exist(rr, t1, t2)) {
           Set<Request> tripOfSizeK = new HashSet<>();
           tripOfSizeK.addAll(t1);
           tripOfSizeK.addAll(t2);
@@ -62,11 +62,11 @@ public class RTV {
     }
   }
 
-  private static boolean r1r2exist(RV rv, Set<Request> t1, Set<Request> t2) {
+  private static boolean r1r2exist(RR rr, Set<Request> t1, Set<Request> t2) {
     for (Request r1 : t1) {
       for (Request r2 : t2) {
-        if (rv.requestToRequestCost.containsKey(r1)
-            && !rv.requestToRequestCost.get(r1).containsKey(r2)) {
+        if (rr.requestToRequestCost.containsKey(r1)
+            && !rr.requestToRequestCost.get(r1).containsKey(r2)) {
           return false;
         }
       }
