@@ -49,8 +49,8 @@ public class RouteGenerator {
         if (stops.getLast().type == Type.PICK_UP && samePickUpLocation) {
           if (stop.request.pickUpTimeWindowStart != null) {
             Instant firstProjectedDeparture = time.plus(serviceTime);
-            Instant secondProjectedDeparture =
-                max(time, stop.request.pickUpTimeWindowStart).plus(stop.request.pickUpServiceTime);
+            Instant secondProjectedDeparture = max(time, stop.request.pickUpTimeWindowStart)
+                .plus(stop.request.pickUpServiceTime);
             if (secondProjectedDeparture.isAfter(firstProjectedDeparture)) {
               time = max(time, stop.request.pickUpTimeWindowStart);
               serviceTime = stop.request.pickUpServiceTime;
@@ -78,8 +78,8 @@ public class RouteGenerator {
         } else if (stops.getLast().type == Type.DROP_OFF) {
           time = time.plus(queueTime).plus(serviceTime)
               .plus(Routing.drivingTime(stops.getLast().location(), stop.location()));
-          if (stop.request.pickUpTimeWindowEnd != null
-              && time.isAfter(stop.request.pickUpTimeWindowEnd)) {
+          if (stop.request.dropOffTimeWindowEnd != null
+              && time.isAfter(stop.request.dropOffTimeWindowEnd)) {
             failed = true;
             return;
           }
@@ -97,13 +97,51 @@ public class RouteGenerator {
         failed = true;
         return;
       } else {
-        time = time.plus(queueTime).plus(serviceTime)
-            .plus(Routing.drivingTime(stops.getLast().location(), stop.location()));
-        if (stop.request.dropOffTimeWindowStart != null) {
+        boolean sameDropOffLocation =
+            Objects.equals(stops.getLast().request.dropOffLocation, stop.request.dropOffLocation);
+        if (stops.getLast().type == Type.DROP_OFF && sameDropOffLocation) {
+          if (stop.request.dropOffTimeWindowEnd != null
+              && time.isAfter(stop.request.dropOffTimeWindowEnd)) {
+            failed = true;
+            return;
+          }
+          if (stop.request.dropOffTimeWindowStart != null) {
+            Instant firstProjectedDeparture = time.plus(serviceTime);
+            Instant secondProjectedDeparture = max(time, stop.request.dropOffTimeWindowStart)
+                .plus(stop.request.dropOffServiceTime);
+            if (secondProjectedDeparture.isAfter(firstProjectedDeparture)) {
+              time = max(time, stop.request.dropOffTimeWindowStart);
+              serviceTime = stop.request.dropOffServiceTime;
+            }
+          }
           time = max(time, stop.request.dropOffTimeWindowStart);
+          serviceTime = max(serviceTime, stop.request.dropOffServiceTime);
+        } else if (stops.getLast().type == Type.DROP_OFF && !sameDropOffLocation) {
+          time = time.plus(queueTime).plus(serviceTime)
+              .plus(Routing.drivingTime(stops.getLast().location(), stop.location()));
+          if (stop.request.dropOffTimeWindowEnd != null
+              && time.isAfter(stop.request.dropOffTimeWindowEnd)) {
+            failed = true;
+            return;
+          }
+          if (stop.request.dropOffTimeWindowStart != null) {
+            time = max(time, stop.request.dropOffTimeWindowStart);
+          }
+          queueTime = Duration.ZERO;
+          serviceTime = stop.request.dropOffServiceTime;
+        } else if (stops.getLast().type == Type.PICK_UP) {
+          time = time.plus(queueTime).plus(serviceTime)
+              .plus(Routing.drivingTime(stops.getLast().location(), stop.location()));
+          if (stop.request.dropOffTimeWindowEnd != null
+              && time.isAfter(stop.request.dropOffTimeWindowEnd)) {
+            failed = true;
+            return;
+          }
+          if (stop.request.dropOffTimeWindowStart != null) {
+            time = max(time, stop.request.dropOffTimeWindowStart);
+          }
+          serviceTime = stop.request.dropOffServiceTime;
         }
-        queueTime = Duration.ZERO;
-        serviceTime = stop.request.dropOffServiceTime;
       }
     }
     stops.add(stop);
