@@ -15,7 +15,7 @@ class RouteStop {
     this.type = type;
   }
 
-  public LatLng location() {
+  LatLng location() {
     if (type == Type.PICK_UP) {
       return request.pickUpLocation;
     } else {
@@ -48,7 +48,7 @@ class RouteStop {
         '}';
   }
 
-  public enum Type {
+  enum Type {
     PICK_UP, DROP_OFF
   }
 }

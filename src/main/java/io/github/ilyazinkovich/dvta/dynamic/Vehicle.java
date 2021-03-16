@@ -3,7 +3,7 @@ package io.github.ilyazinkovich.dvta.dynamic;
 import java.util.List;
 import java.util.Objects;
 
-public class Vehicle {
+class Vehicle {
 
   public final String id;
   public final LatLng currentLocation;
@@ -16,7 +16,7 @@ public class Vehicle {
    * @param route route that the vehicle follows
    * @param capacities capacities available in the vehicle
    */
-  public Vehicle(String id,
+  Vehicle(String id,
       LatLng currentLocation,
       List<RouteStop> route,
       List<Capacity> capacities) {

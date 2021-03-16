@@ -2,12 +2,12 @@ package io.github.ilyazinkovich.dvta.dynamic;
 
 import java.util.Objects;
 
-public class Capacity {
+class Capacity {
 
   public final double quantity;
   public final Unit unit;
 
-  public Capacity(double quantity, Unit unit) {
+  Capacity(double quantity, Unit unit) {
     this.quantity = quantity;
     this.unit = unit;
   }
