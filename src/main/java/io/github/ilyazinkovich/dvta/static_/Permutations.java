@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class Permutations {
+class Permutations {
 
   static <T> Set<List<T>> generate(List<T> a, int size) {
     Set<List<T>> res = new HashSet<>();

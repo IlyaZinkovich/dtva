@@ -4,7 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 
-public class Request {
+class Request {
 
   public final String id;
   public final LatLng origin; // o

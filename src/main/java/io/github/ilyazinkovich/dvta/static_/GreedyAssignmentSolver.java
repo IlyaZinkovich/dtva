@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class GreedyAssignmentSolver {
+class GreedyAssignmentSolver {
 
   static Map<Vehicle, Set<Request>> solve(RTV rtv) {
     List<AssignmentCandidate> candidates = new ArrayList<>();

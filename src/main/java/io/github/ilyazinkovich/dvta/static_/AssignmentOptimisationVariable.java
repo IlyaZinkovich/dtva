@@ -4,7 +4,7 @@ import com.google.ortools.linearsolver.MPVariable;
 import java.util.Objects;
 import java.util.Set;
 
-public class AssignmentOptimisationVariable {
+class AssignmentOptimisationVariable {
 
   public final Vehicle vehicle;
   public final Set<Request> trip;

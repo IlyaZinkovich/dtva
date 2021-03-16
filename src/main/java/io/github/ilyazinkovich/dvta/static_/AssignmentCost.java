@@ -4,7 +4,7 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.Set;
 
-public class AssignmentCost {
+class AssignmentCost {
 
   static double calculate(RTV rtv, Map<Vehicle, Set<Request>> assignment, int requestsCount) {
     double penalty = penalty(rtv);

@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.Set;
 
-public class Vehicle {
+class Vehicle {
 
   public final String id;
   public final LatLng currentPosition; // q

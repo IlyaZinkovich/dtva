@@ -3,7 +3,7 @@ package io.github.ilyazinkovich.dvta.static_;
 import java.util.Objects;
 import java.util.Set;
 
-public class AssignmentCandidate {
+class AssignmentCandidate {
 
   public final Vehicle vehicle;
   public final Set<Request> trip;

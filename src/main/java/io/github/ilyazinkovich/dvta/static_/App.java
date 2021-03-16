@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class App {
+class App {
 
   public static void main(String[] args) {
     ExecutorService executor =

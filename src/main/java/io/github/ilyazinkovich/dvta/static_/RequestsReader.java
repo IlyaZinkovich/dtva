@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-public class RequestsReader {
+class RequestsReader {
 
   static List<Request> read(Duration maxWaitTime, Duration maxToleratedDelay) {
     List<Request> requests = new ArrayList<>();

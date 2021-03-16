@@ -2,7 +2,7 @@ package io.github.ilyazinkovich.dvta.static_;
 
 import java.time.Duration;
 
-public class Routing {
+class Routing {
 
   private static final int EARTH_RADIUS = 6371; // KM
 

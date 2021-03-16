@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class TSP {
+class TSP {
 
   static Map<Vehicle, Map<Set<Request>, Double>> cache = new HashMap<>();
 

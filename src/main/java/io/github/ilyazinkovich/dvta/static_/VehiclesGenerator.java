@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class VehiclesGenerator {
+class VehiclesGenerator {
 
   private static final AtomicInteger IDS = new AtomicInteger();
 

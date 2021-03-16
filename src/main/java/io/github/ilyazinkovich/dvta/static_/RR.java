@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class RR {
+class RR {
 
   public final Map<Request, Map<Request, Double>> requestToRequestCost;
 

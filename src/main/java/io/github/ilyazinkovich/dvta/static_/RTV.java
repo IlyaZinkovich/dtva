@@ -10,7 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 
-public class RTV {
+class RTV {
 
   public final Map<Vehicle, Map<Set<Request>, Double>> vehicleToTripCost;
 
