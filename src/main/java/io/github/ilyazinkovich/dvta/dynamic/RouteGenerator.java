@@ -1,5 +1,8 @@
 package io.github.ilyazinkovich.dvta.dynamic;
 
+import static io.github.ilyazinkovich.dvta.dynamic.RouteGenerator.FailureReason.NO_PICK_UP_FOR_DROP_OFF;
+import static io.github.ilyazinkovich.dvta.dynamic.RouteGenerator.FailureReason.PICK_UP_AFTER_TIME_WINDOW_END;
+
 import io.github.ilyazinkovich.dvta.dynamic.RouteStop.Type;
 import java.time.Duration;
 import java.time.Instant;
@@ -11,6 +14,7 @@ import java.util.Set;
 public class RouteGenerator {
 
   private boolean failed;
+  private FailureReason failureReason;
   private final LinkedList<RouteStop> stops;
   private final Set<Request> pickUps;
   private Instant time;
@@ -39,12 +43,14 @@ public class RouteGenerator {
         if (stop.request.pickUpTimeWindowEnd != null
             && time.isAfter(stop.request.pickUpTimeWindowEnd)) {
           failed = true;
+          failureReason = PICK_UP_AFTER_TIME_WINDOW_END;
           return;
         }
-        if (stop.request.pickUpTimeWindowStart != null
-            && stop.request.pickUpTimeWindowStart.isAfter(time)) {
+        if (stop.request.pickUpTimeWindowStart != null) {
           pickUpDeviations.add(Duration.between(time, stop.request.pickUpTimeWindowStart));
-          time = stop.request.pickUpTimeWindowStart;
+          if (stop.request.pickUpTimeWindowStart.isAfter(time)) {
+            time = stop.request.pickUpTimeWindowStart;
+          }
         } else if (stop.request.pickUpQueueTime != null) {
           queueTime = stop.request.pickUpQueueTime;
         }
@@ -110,6 +116,7 @@ public class RouteGenerator {
     } else if (stop.type == Type.DROP_OFF) {
       if (!pickUps.contains(stop.request)) {
         failed = true;
+        failureReason = NO_PICK_UP_FOR_DROP_OFF;
         return;
       } else {
         boolean sameDropOffLocation =
@@ -185,5 +192,29 @@ public class RouteGenerator {
     } else {
       return left;
     }
+  }
+
+  boolean failed() {
+    return failed;
+  }
+
+  FailureReason failureReason() {
+    return failureReason;
+  }
+
+  LinkedList<Duration> pickUpDeviations() {
+    return pickUpDeviations;
+  }
+
+  Duration queueTime() {
+    return queueTime;
+  }
+
+  Duration serviceTime() {
+    return serviceTime;
+  }
+
+  enum FailureReason {
+    NO_PICK_UP_FOR_DROP_OFF, PICK_UP_AFTER_TIME_WINDOW_END
   }
 }
