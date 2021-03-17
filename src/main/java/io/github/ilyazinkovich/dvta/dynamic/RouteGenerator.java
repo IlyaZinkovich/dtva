@@ -55,26 +55,30 @@ public class RouteGenerator {
 
   private void initialState(RouteStop stop) {
     if (stop.type == PICK_UP) {
-      serviceTime = stop.request.pickUpServiceTime;
-      if (stop.request.pickUpTimeWindowEnd != null
-          && time.isAfter(stop.request.pickUpTimeWindowEnd)) {
-        state = FAILED;
-        failureReason = PICK_UP_AFTER_TIME_WINDOW_END;
-      } else if (stop.request.pickUpTimeWindowStart != null) {
-        if (time.isBefore(stop.request.pickUpTimeWindowStart)) {
-          extraWait.add(Duration.between(time, stop.request.pickUpTimeWindowStart));
-        } else {
-          extraWait.add(Duration.ZERO);
-        }
-        if (stop.request.pickUpTimeWindowStart.isAfter(time)) {
-          time = stop.request.pickUpTimeWindowStart;
-        }
-        state = PICK;
-        pickUps.add(stop.request);
-      }
+      initialPick(stop);
     } else if (stop.type == DROP_OFF) {
       state = FAILED;
       failureReason = NO_PICK_UP_FOR_DROP_OFF;
+    }
+  }
+
+  private void initialPick(RouteStop stop) {
+    if (stop.request.pickUpTimeWindowEnd != null
+        && time.isAfter(stop.request.pickUpTimeWindowEnd)) {
+      state = FAILED;
+      failureReason = PICK_UP_AFTER_TIME_WINDOW_END;
+    } else if (stop.request.pickUpTimeWindowStart != null) {
+      if (time.isBefore(stop.request.pickUpTimeWindowStart)) {
+        extraWait.add(Duration.between(time, stop.request.pickUpTimeWindowStart));
+      } else {
+        extraWait.add(Duration.ZERO);
+      }
+      if (stop.request.pickUpTimeWindowStart.isAfter(time)) {
+        time = stop.request.pickUpTimeWindowStart;
+      }
+      serviceTime = stop.request.pickUpServiceTime;
+      state = PICK;
+      pickUps.add(stop.request);
     }
   }
 
@@ -87,20 +91,6 @@ public class RouteGenerator {
       }
     } else if (stop.type == DROP_OFF) {
       drop(stop);
-    }
-  }
-
-  private void dropState(RouteStop stop) {
-    if (stop.type == PICK_UP) {
-      pick(stop);
-    } else if (stop.type == DROP_OFF) {
-      if (sameLocation(stops.getLast().request.dropOffLocationId,
-          stop.request.dropOffLocationId)) {
-        dropSameLocation(stop);
-      } else {
-        dropDifferentLocation(stop);
-      }
-      calculateDropOffDelay(stop);
     }
   }
 
@@ -131,20 +121,18 @@ public class RouteGenerator {
         && time.isAfter(stop.request.pickUpTimeWindowEnd)) {
       state = FAILED;
       failureReason = PICK_UP_AFTER_TIME_WINDOW_END;
-    } else {
-      if (stop.request.pickUpTimeWindowStart != null) {
-        serviceTime = stop.request.pickUpServiceTime;
-        if (time.isBefore(stop.request.pickUpTimeWindowStart)) {
-          extraWait.add(Duration.between(time, stop.request.pickUpTimeWindowStart));
-        } else {
-          extraWait.add(Duration.ZERO);
-        }
-        if (stop.request.pickUpTimeWindowStart.isAfter(time)) {
-          time = stop.request.pickUpTimeWindowStart;
-        }
-        state = PICK;
-        pickUps.add(stop.request);
+    } else if (stop.request.pickUpTimeWindowStart != null) {
+      if (time.isBefore(stop.request.pickUpTimeWindowStart)) {
+        extraWait.add(Duration.between(time, stop.request.pickUpTimeWindowStart));
+      } else {
+        extraWait.add(Duration.ZERO);
       }
+      if (stop.request.pickUpTimeWindowStart.isAfter(time)) {
+        time = stop.request.pickUpTimeWindowStart;
+      }
+      serviceTime = stop.request.pickUpServiceTime;
+      state = PICK;
+      pickUps.add(stop.request);
     }
   }
 
@@ -172,6 +160,19 @@ public class RouteGenerator {
         state = DROP;
         calculateDropOffDelay(stop);
       }
+    }
+  }
+
+  private void dropState(RouteStop stop) {
+    if (stop.type == PICK_UP) {
+      pick(stop);
+    } else if (stop.type == DROP_OFF) {
+      if (sameLocation(stops.getLast().request.dropOffLocationId, stop.request.dropOffLocationId)) {
+        dropSameLocation(stop);
+      } else {
+        dropDifferentLocation(stop);
+      }
+      calculateDropOffDelay(stop);
     }
   }
 
@@ -222,8 +223,7 @@ public class RouteGenerator {
   private void calculateDropOffDelay(RouteStop stop) {
     if (stop.request.dropOffTimeTarget != null
         && time.plus(serviceTime).isAfter(stop.request.dropOffTimeTarget)) {
-      dropOffDelays.add(
-          Duration.between(stop.request.dropOffTimeTarget, time.plus(serviceTime)));
+      dropOffDelays.add(Duration.between(stop.request.dropOffTimeTarget, time.plus(serviceTime)));
     } else {
       dropOffDelays.add(Duration.ZERO);
     }

@@ -108,19 +108,6 @@ class RouteGeneratorTest {
   }
 
   @Test
-  public void onePickUpWithServiceTime() {
-    Instant time = Instant.now();
-    RouteGenerator routeGenerator = new RouteGenerator(time, EMPTY_DRIVING_TIME_MATRIX);
-    Duration serviceTime = Duration.ofMinutes(10);
-    Request request = new Request(UUID.randomUUID().toString(), null, null, null, null, null, null,
-        null, null, null, serviceTime, null, null, null, null, null);
-    routeGenerator.add(new RouteStop(request, PICK_UP));
-    assertFalse(routeGenerator.failed());
-    assertEquals(time, routeGenerator.time());
-    assertEquals(serviceTime, routeGenerator.serviceTime());
-  }
-
-  @Test
   public void twoPickUpsAtSameLocationAtTimeWindowStart() {
     Instant time = Instant.now();
     RouteGenerator routeGenerator = new RouteGenerator(time, EMPTY_DRIVING_TIME_MATRIX);
