@@ -62,6 +62,7 @@ class RouteGeneratorTest {
     routeGenerator.add(new RouteStop(request, PICK_UP));
     assertFalse(routeGenerator.failed());
     assertEquals(List.of(Duration.ZERO), routeGenerator.pickUpExtraWait());
+    assertEquals(time, routeGenerator.time());
   }
 
   @Test
@@ -75,6 +76,7 @@ class RouteGeneratorTest {
     routeGenerator.add(new RouteStop(request, PICK_UP));
     assertFalse(routeGenerator.failed());
     assertEquals(List.of(extraWait), routeGenerator.pickUpExtraWait());
+    assertEquals(pickUpTimeWindowStart, routeGenerator.time());
   }
 
   @Test
@@ -88,6 +90,7 @@ class RouteGeneratorTest {
     routeGenerator.add(new RouteStop(request, PICK_UP));
     assertFalse(routeGenerator.failed());
     assertEquals(List.of(Duration.ZERO), routeGenerator.pickUpExtraWait());
+    assertEquals(time, routeGenerator.time());
   }
 
   @Test
@@ -100,6 +103,7 @@ class RouteGeneratorTest {
     routeGenerator.add(new RouteStop(request, PICK_UP));
     assertFalse(routeGenerator.failed());
     assertEquals(queueTime, routeGenerator.queueTime());
+    assertEquals(time, routeGenerator.time());
   }
 
   @Test
@@ -112,6 +116,7 @@ class RouteGeneratorTest {
     routeGenerator.add(new RouteStop(request, PICK_UP));
     assertFalse(routeGenerator.failed());
     assertEquals(serviceTime, routeGenerator.serviceTime());
+    assertEquals(time, routeGenerator.time());
   }
 
   @Test
@@ -128,6 +133,7 @@ class RouteGeneratorTest {
     routeGenerator.add(new RouteStop(request2, PICK_UP));
     assertFalse(routeGenerator.failed());
     assertEquals(List.of(Duration.ZERO, Duration.ZERO), routeGenerator.pickUpExtraWait());
+    assertEquals(time, routeGenerator.time());
   }
 
   @Test
@@ -147,6 +153,7 @@ class RouteGeneratorTest {
     assertFalse(routeGenerator.failed());
     assertEquals(List.of(Duration.ZERO, Duration.ZERO), routeGenerator.pickUpExtraWait());
     assertEquals(serviceTime1, routeGenerator.serviceTime());
+    assertEquals(time, routeGenerator.time());
   }
 
   @Test
@@ -166,6 +173,7 @@ class RouteGeneratorTest {
     assertFalse(routeGenerator.failed());
     assertEquals(List.of(Duration.ZERO, Duration.ZERO), routeGenerator.pickUpExtraWait());
     assertEquals(serviceTime2, routeGenerator.serviceTime());
+    assertEquals(time, routeGenerator.time());
   }
 
   @Test
@@ -187,6 +195,7 @@ class RouteGeneratorTest {
     assertFalse(routeGenerator.failed());
     assertEquals(List.of(Duration.ZERO, Duration.ZERO), routeGenerator.pickUpExtraWait());
     assertEquals(serviceTime2, routeGenerator.serviceTime());
+    assertEquals(pickUpTimeWindowStart2, routeGenerator.time());
   }
 
   @Test
@@ -208,5 +217,6 @@ class RouteGeneratorTest {
     assertFalse(routeGenerator.failed());
     assertEquals(List.of(Duration.ZERO, extraWait), routeGenerator.pickUpExtraWait());
     assertEquals(serviceTime2, routeGenerator.serviceTime());
+    assertEquals(pickUpTimeWindowStart2, routeGenerator.time());
   }
 }

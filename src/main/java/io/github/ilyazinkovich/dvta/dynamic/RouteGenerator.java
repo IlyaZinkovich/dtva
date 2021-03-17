@@ -80,7 +80,7 @@ public class RouteGenerator {
             }
           } else if (stop.request.pickUpQueueTime != null) {
             if (queueTime.isZero()) {
-              pickUpExtraWait.add(queueTime);
+              pickUpExtraWait.add(stop.request.pickUpQueueTime);
               queueTime = stop.request.pickUpQueueTime;
             }
             serviceTime = max(serviceTime, stop.request.pickUpServiceTime);
@@ -200,14 +200,6 @@ public class RouteGenerator {
     }
   }
 
-  private static Instant min(Instant left, Instant right) {
-    if (left.isBefore(right)) {
-      return left;
-    } else {
-      return right;
-    }
-  }
-
   private Duration max(Duration left, Duration right) {
     if (left.compareTo(right) < 0) {
       return right;
@@ -234,6 +226,10 @@ public class RouteGenerator {
 
   Duration serviceTime() {
     return serviceTime;
+  }
+
+  Instant time() {
+    return time;
   }
 
   enum FailureReason {
