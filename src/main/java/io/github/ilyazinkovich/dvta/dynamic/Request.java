@@ -68,11 +68,11 @@ class Request {
     this.pickUpTimeWindowStart = pickUpTimeWindowStart;
     this.pickUpTimeWindowEnd = pickUpTimeWindowEnd;
     this.pickUpQueueTime = pickUpQueueTime;
-    this.pickUpServiceTime = pickUpServiceTime;
+    this.pickUpServiceTime = Objects.requireNonNullElse(pickUpServiceTime, Duration.ZERO);
     this.dropOffTimeWindowStart = dropOffTimeWindowStart;
     this.dropOffTimeWindowEnd = dropOffTimeWindowEnd;
     this.dropOffTimeTarget = dropOffTimeTarget;
-    this.dropOffServiceTime = dropOffServiceTime;
+    this.dropOffServiceTime = Objects.requireNonNullElse(dropOffServiceTime, Duration.ZERO);
     this.requiredCapacities = requiredCapacities;
   }
 

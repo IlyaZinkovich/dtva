@@ -2,8 +2,9 @@ package io.github.ilyazinkovich.dvta.dynamic;
 
 import static io.github.ilyazinkovich.dvta.dynamic.RouteGenerator.FailureReason.NO_PICK_UP_FOR_DROP_OFF;
 import static io.github.ilyazinkovich.dvta.dynamic.RouteGenerator.FailureReason.PICK_UP_AFTER_TIME_WINDOW_END;
+import static io.github.ilyazinkovich.dvta.dynamic.RouteStop.Type.DROP_OFF;
+import static io.github.ilyazinkovich.dvta.dynamic.RouteStop.Type.PICK_UP;
 
-import io.github.ilyazinkovich.dvta.dynamic.RouteStop.Type;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
@@ -20,7 +21,7 @@ public class RouteGenerator {
   private Instant time;
   private Duration queueTime;
   private Duration serviceTime;
-  private final LinkedList<Duration> pickUpDeviations;
+  private final LinkedList<Duration> pickUpExtraWait;
   private final LinkedList<Duration> dropOffDeviations;
 
   RouteGenerator(Instant time) {
@@ -30,7 +31,7 @@ public class RouteGenerator {
     this.time = time;
     this.queueTime = Duration.ZERO;
     this.serviceTime = Duration.ZERO;
-    this.pickUpDeviations = new LinkedList<>();
+    this.pickUpExtraWait = new LinkedList<>();
     this.dropOffDeviations = new LinkedList<>();
   }
 
@@ -38,7 +39,7 @@ public class RouteGenerator {
     if (failed) {
       return;
     }
-    if (stop.type == Type.PICK_UP) {
+    if (stop.type == PICK_UP) {
       if (stops.isEmpty()) {
         if (stop.request.pickUpTimeWindowEnd != null
             && time.isAfter(stop.request.pickUpTimeWindowEnd)) {
@@ -47,7 +48,11 @@ public class RouteGenerator {
           return;
         }
         if (stop.request.pickUpTimeWindowStart != null) {
-          pickUpDeviations.add(Duration.between(time, stop.request.pickUpTimeWindowStart));
+          if (time.isBefore(stop.request.pickUpTimeWindowStart)) {
+            pickUpExtraWait.add(Duration.between(time, stop.request.pickUpTimeWindowStart));
+          } else {
+            pickUpExtraWait.add(Duration.ZERO);
+          }
           if (stop.request.pickUpTimeWindowStart.isAfter(time)) {
             time = stop.request.pickUpTimeWindowStart;
           }
@@ -57,28 +62,30 @@ public class RouteGenerator {
         serviceTime = stop.request.pickUpServiceTime;
       } else {
         boolean samePickUpLocation =
-            Objects.equals(stops.getLast().request.pickUpLocationId, stop.request.pickUpLocationId);
-        if (stops.getLast().type == Type.PICK_UP && samePickUpLocation) {
+            sameLocation(stops.getLast().request.pickUpLocationId, stop.request.pickUpLocationId);
+        if (stops.getLast().type == PICK_UP && samePickUpLocation) {
           if (stop.request.pickUpTimeWindowStart != null) {
             Instant firstProjectedDeparture = time.plus(serviceTime);
+            if (firstProjectedDeparture.isBefore(stop.request.pickUpTimeWindowStart)) {
+              pickUpExtraWait.add(
+                  Duration.between(firstProjectedDeparture, stop.request.pickUpTimeWindowStart));
+            } else {
+              pickUpExtraWait.add(Duration.ZERO);
+            }
             Instant secondProjectedDeparture = max(time, stop.request.pickUpTimeWindowStart)
                 .plus(stop.request.pickUpServiceTime);
             if (secondProjectedDeparture.isAfter(firstProjectedDeparture)) {
               time = max(time, stop.request.pickUpTimeWindowStart);
               serviceTime = stop.request.pickUpServiceTime;
             }
-            if (firstProjectedDeparture.isBefore(stop.request.pickUpTimeWindowStart)) {
-              pickUpDeviations.add(
-                  Duration.between(firstProjectedDeparture, stop.request.pickUpTimeWindowStart));
-            }
           } else if (stop.request.pickUpQueueTime != null) {
             if (queueTime.isZero()) {
-              pickUpDeviations.add(queueTime);
+              pickUpExtraWait.add(queueTime);
               queueTime = stop.request.pickUpQueueTime;
             }
             serviceTime = max(serviceTime, stop.request.pickUpServiceTime);
           }
-        } else if (stops.getLast().type == Type.PICK_UP && !samePickUpLocation) {
+        } else if (stops.getLast().type == PICK_UP && !samePickUpLocation) {
           time = time.plus(queueTime).plus(serviceTime)
               .plus(Routing.drivingTime(stops.getLast().location(), stop.location()));
           if (stop.request.pickUpTimeWindowEnd != null
@@ -88,13 +95,13 @@ public class RouteGenerator {
           }
           if (stop.request.pickUpTimeWindowStart != null
               && stop.request.pickUpTimeWindowStart.isAfter(time)) {
-            pickUpDeviations.add(Duration.between(time, stop.request.pickUpTimeWindowStart));
+            pickUpExtraWait.add(Duration.between(time, stop.request.pickUpTimeWindowStart));
             time = stop.request.pickUpTimeWindowStart;
           } else if (stop.request.pickUpQueueTime != null) {
             queueTime = stop.request.pickUpQueueTime;
           }
           serviceTime = stop.request.pickUpServiceTime;
-        } else if (stops.getLast().type == Type.DROP_OFF) {
+        } else if (stops.getLast().type == DROP_OFF) {
           time = time.plus(queueTime).plus(serviceTime)
               .plus(Routing.drivingTime(stops.getLast().location(), stop.location()));
           if (stop.request.dropOffTimeWindowEnd != null
@@ -104,7 +111,7 @@ public class RouteGenerator {
           }
           if (stop.request.pickUpTimeWindowStart != null
               && stop.request.pickUpTimeWindowStart.isAfter(time)) {
-            pickUpDeviations.add(Duration.between(time, stop.request.pickUpTimeWindowStart));
+            pickUpExtraWait.add(Duration.between(time, stop.request.pickUpTimeWindowStart));
             time = stop.request.pickUpTimeWindowStart;
           } else if (stop.request.pickUpQueueTime != null) {
             queueTime = stop.request.pickUpQueueTime;
@@ -113,15 +120,15 @@ public class RouteGenerator {
         }
       }
       pickUps.add(stop.request);
-    } else if (stop.type == Type.DROP_OFF) {
+    } else if (stop.type == DROP_OFF) {
       if (!pickUps.contains(stop.request)) {
         failed = true;
         failureReason = NO_PICK_UP_FOR_DROP_OFF;
         return;
       } else {
         boolean sameDropOffLocation =
-            Objects.equals(stops.getLast().request.dropOffLocation, stop.request.dropOffLocation);
-        if (stops.getLast().type == Type.DROP_OFF && sameDropOffLocation) {
+            sameLocation(stops.getLast().request.dropOffLocationId, stop.request.dropOffLocationId);
+        if (stops.getLast().type == DROP_OFF && sameDropOffLocation) {
           if (stop.request.dropOffTimeWindowEnd != null
               && time.isAfter(stop.request.dropOffTimeWindowEnd)) {
             failed = true;
@@ -136,13 +143,13 @@ public class RouteGenerator {
               serviceTime = stop.request.dropOffServiceTime;
             }
             if (firstProjectedDeparture.isBefore(stop.request.dropOffTimeWindowStart)) {
-              pickUpDeviations.add(
+              pickUpExtraWait.add(
                   Duration.between(firstProjectedDeparture, stop.request.dropOffTimeWindowStart));
             }
           }
           time = max(time, stop.request.dropOffTimeWindowStart);
           serviceTime = max(serviceTime, stop.request.dropOffServiceTime);
-        } else if (stops.getLast().type == Type.DROP_OFF && !sameDropOffLocation) {
+        } else if (stops.getLast().type == DROP_OFF && !sameDropOffLocation) {
           time = time.plus(queueTime).plus(serviceTime)
               .plus(Routing.drivingTime(stops.getLast().location(), stop.location()));
           if (stop.request.dropOffTimeWindowEnd != null
@@ -152,12 +159,12 @@ public class RouteGenerator {
           }
           if (stop.request.dropOffTimeWindowStart != null
               && stop.request.dropOffTimeWindowStart.isAfter(time)) {
-            pickUpDeviations.add(Duration.between(time, stop.request.dropOffTimeWindowStart));
+            pickUpExtraWait.add(Duration.between(time, stop.request.dropOffTimeWindowStart));
             time = stop.request.dropOffTimeWindowStart;
           }
           queueTime = Duration.ZERO;
           serviceTime = stop.request.dropOffServiceTime;
-        } else if (stops.getLast().type == Type.PICK_UP) {
+        } else if (stops.getLast().type == PICK_UP) {
           time = time.plus(queueTime).plus(serviceTime)
               .plus(Routing.drivingTime(stops.getLast().location(), stop.location()));
           if (stop.request.dropOffTimeWindowEnd != null
@@ -167,7 +174,7 @@ public class RouteGenerator {
           }
           if (stop.request.dropOffTimeWindowStart != null
               && stop.request.dropOffTimeWindowStart.isAfter(time)) {
-            pickUpDeviations.add(Duration.between(time, stop.request.dropOffTimeWindowStart));
+            pickUpExtraWait.add(Duration.between(time, stop.request.dropOffTimeWindowStart));
             time = stop.request.dropOffTimeWindowStart;
           }
           serviceTime = stop.request.dropOffServiceTime;
@@ -178,11 +185,26 @@ public class RouteGenerator {
     stops.add(stop);
   }
 
+  private boolean sameLocation(Integer left, Integer right) {
+    if (left == null && right == null) {
+      return false;
+    }
+    return Objects.equals(left, right);
+  }
+
   private static Instant max(Instant left, Instant right) {
     if (left.isBefore(right)) {
       return right;
     } else {
       return left;
+    }
+  }
+
+  private static Instant min(Instant left, Instant right) {
+    if (left.isBefore(right)) {
+      return left;
+    } else {
+      return right;
     }
   }
 
@@ -202,8 +224,8 @@ public class RouteGenerator {
     return failureReason;
   }
 
-  LinkedList<Duration> pickUpDeviations() {
-    return pickUpDeviations;
+  LinkedList<Duration> pickUpExtraWait() {
+    return pickUpExtraWait;
   }
 
   Duration queueTime() {
