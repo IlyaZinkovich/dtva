@@ -44,34 +44,16 @@ public class RouteGenerator {
     if (state == FAILED) {
       return;
     } else if (state == INITIAL) {
-      initial(stop);
+      initialState(stop);
     } else if (state == PICK) {
-      if (stop.type == PICK_UP) {
-        if (sameLocation(stops.getLast().request.pickUpLocationId, stop.request.pickUpLocationId)) {
-          pickSameLocation(stop);
-        } else {
-          pickDifferentLocation(stop);
-        }
-      } else if (stop.type == DROP_OFF) {
-        drop(stop);
-      }
+      pickState(stop);
     } else if (state == DROP) {
-      if (stop.type == PICK_UP) {
-        pick(stop);
-      } else if (stop.type == DROP_OFF) {
-        if (sameLocation(stops.getLast().request.dropOffLocationId,
-            stop.request.dropOffLocationId)) {
-          dropSameLocation(stop);
-        } else {
-          dropDifferentLocation(stop);
-        }
-        calculateDropOffDelay(stop);
-      }
+      dropState(stop);
     }
     stops.add(stop);
   }
 
-  private void initial(RouteStop stop) {
+  private void initialState(RouteStop stop) {
     if (stop.type == PICK_UP) {
       serviceTime = stop.request.pickUpServiceTime;
       if (stop.request.pickUpTimeWindowEnd != null
@@ -93,6 +75,32 @@ public class RouteGenerator {
     } else if (stop.type == DROP_OFF) {
       state = FAILED;
       failureReason = NO_PICK_UP_FOR_DROP_OFF;
+    }
+  }
+
+  private void pickState(RouteStop stop) {
+    if (stop.type == PICK_UP) {
+      if (sameLocation(stops.getLast().request.pickUpLocationId, stop.request.pickUpLocationId)) {
+        pickSameLocation(stop);
+      } else {
+        pickDifferentLocation(stop);
+      }
+    } else if (stop.type == DROP_OFF) {
+      drop(stop);
+    }
+  }
+
+  private void dropState(RouteStop stop) {
+    if (stop.type == PICK_UP) {
+      pick(stop);
+    } else if (stop.type == DROP_OFF) {
+      if (sameLocation(stops.getLast().request.dropOffLocationId,
+          stop.request.dropOffLocationId)) {
+        dropSameLocation(stop);
+      } else {
+        dropDifferentLocation(stop);
+      }
+      calculateDropOffDelay(stop);
     }
   }
 
