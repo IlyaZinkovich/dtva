@@ -238,9 +238,9 @@ class RouteGeneratorTest {
     Request request1 = new Request(UUID.randomUUID().toString(), pickUpLocation1, pickUpLocationId1,
         null, null, null, null, pickUpTimeWindowStart1, null, null, serviceTime1, null, null, null,
         null, null);
-    Duration late = Duration.ofMinutes(2);
+    Duration delay = Duration.ofMinutes(2);
     Instant pickUpTimeWindowEnd =
-        pickUpTimeWindowStart1.plus(serviceTime1).plus(drivingTime).minus(late);
+        pickUpTimeWindowStart1.plus(serviceTime1).plus(drivingTime).minus(delay);
     Request request2 = new Request(UUID.randomUUID().toString(), pickUpLocation2, pickUpLocationId2,
         null, null, null, null, null, pickUpTimeWindowEnd, null, null, null, null, null,
         null, null);
@@ -512,5 +512,130 @@ class RouteGeneratorTest {
     assertEquals(arrivalAtPickUp2, routeGenerator.time());
     assertEquals(pickUpServiceTime2, routeGenerator.serviceTime());
     assertEquals(List.of(Duration.ZERO), routeGenerator.dropOffDelays());
+  }
+
+  @Test
+  public void twoPickUpsTwoDropOffsAtSameLocationAfterWindowEnd() {
+    Instant time = Instant.now();
+    DrivingTimeMatrix drivingTimeMatrix = mock(DrivingTimeMatrix.class);
+    RouteGenerator routeGenerator = new RouteGenerator(time, drivingTimeMatrix);
+    LatLng pickUpLocation = new LatLng(40.699161529541016, -73.985969543457031);
+    Integer pickUpLocationId = 1;
+    LatLng dropOffLocation = new LatLng(40.701595306396484, -74.012008666992188);
+    Integer dropOffLocationId = 2;
+    Duration drivingTime = Duration.ofMinutes(10);
+    when(drivingTimeMatrix.drivingTime(eq(pickUpLocation), eq(dropOffLocation)))
+        .thenReturn(drivingTime);
+    Instant pickUpTimeStart1 = time;
+    Duration pickUpServiceTime1 = Duration.ofMinutes(5);
+    Instant pickUpTimeStart2 = time;
+    Duration pickUpServiceTime2 = Duration.ofMinutes(7);
+    Instant arrivalTimeAtDropOff = time.plus(pickUpServiceTime2).plus(drivingTime);
+    Instant dropOffTimeWindowStart1 = arrivalTimeAtDropOff;
+    Duration dropOffServiceTime1 = Duration.ofMinutes(3);
+    Instant dropOffTimeTarget1 = dropOffTimeWindowStart1.plus(dropOffServiceTime1);
+    Request request1 = new Request(UUID.randomUUID().toString(), pickUpLocation, pickUpLocationId,
+        dropOffLocation, dropOffLocationId, null, null, pickUpTimeStart1, null, null,
+        pickUpServiceTime1, dropOffTimeWindowStart1, null, dropOffServiceTime1, dropOffTimeTarget1,
+        null);
+    Duration delay = Duration.ofMinutes(2);
+    Instant dropOffTimeWindowEnd = arrivalTimeAtDropOff.minus(delay);
+    Request request2 = new Request(UUID.randomUUID().toString(), pickUpLocation, pickUpLocationId,
+        dropOffLocation, dropOffLocationId, null, null, pickUpTimeStart2, null, null,
+        pickUpServiceTime2, null, dropOffTimeWindowEnd, null, null, null);
+    routeGenerator.add(new RouteStop(request1, PICK_UP));
+    routeGenerator.add(new RouteStop(request2, PICK_UP));
+    routeGenerator.add(new RouteStop(request1, DROP_OFF));
+    routeGenerator.add(new RouteStop(request2, DROP_OFF));
+    assertTrue(routeGenerator.failed());
+    assertEquals(DROP_OFF_AFTER_TIME_WINDOW_END, routeGenerator.failureReason());
+  }
+
+  @Test
+  public void twoPickUpsTwoDropOffsAtSameLocationBeforeWindowStart() {
+    Instant time = Instant.now();
+    DrivingTimeMatrix drivingTimeMatrix = mock(DrivingTimeMatrix.class);
+    RouteGenerator routeGenerator = new RouteGenerator(time, drivingTimeMatrix);
+    LatLng pickUpLocation = new LatLng(40.699161529541016, -73.985969543457031);
+    Integer pickUpLocationId = 1;
+    LatLng dropOffLocation = new LatLng(40.701595306396484, -74.012008666992188);
+    Integer dropOffLocationId = 2;
+    Duration drivingTime = Duration.ofMinutes(10);
+    when(drivingTimeMatrix.drivingTime(eq(pickUpLocation), eq(dropOffLocation)))
+        .thenReturn(drivingTime);
+    Instant pickUpTimeStart1 = time;
+    Duration pickUpServiceTime1 = Duration.ofMinutes(5);
+    Instant pickUpTimeStart2 = time;
+    Duration pickUpServiceTime2 = Duration.ofMinutes(7);
+    Instant arrivalTimeAtDropOff = time.plus(pickUpServiceTime2).plus(drivingTime);
+    Instant dropOffTimeWindowStart1 = arrivalTimeAtDropOff;
+    Duration dropOffServiceTime1 = Duration.ofMinutes(3);
+    Instant dropOffTimeTarget1 = dropOffTimeWindowStart1.plus(dropOffServiceTime1);
+    Request request1 = new Request(UUID.randomUUID().toString(), pickUpLocation, pickUpLocationId,
+        dropOffLocation, dropOffLocationId, null, null, pickUpTimeStart1, null, null,
+        pickUpServiceTime1, dropOffTimeWindowStart1, null, dropOffServiceTime1, dropOffTimeTarget1,
+        null);
+    Duration extraWait = Duration.ofMinutes(2);
+    Instant dropOffTimeWindowStart2 =
+        arrivalTimeAtDropOff.plus(dropOffServiceTime1).plus(extraWait);
+    Duration dropOffServiceTime2 = Duration.ofMinutes(4);
+    Instant dropOffTimeTarget = dropOffTimeWindowStart2.plus(dropOffServiceTime2);
+    Request request2 = new Request(UUID.randomUUID().toString(), pickUpLocation, pickUpLocationId,
+        dropOffLocation, dropOffLocationId, null, null, pickUpTimeStart2, null, null,
+        pickUpServiceTime2, dropOffTimeWindowStart2, null, dropOffServiceTime2, dropOffTimeTarget, null);
+    routeGenerator.add(new RouteStop(request1, PICK_UP));
+    routeGenerator.add(new RouteStop(request2, PICK_UP));
+    routeGenerator.add(new RouteStop(request1, DROP_OFF));
+    routeGenerator.add(new RouteStop(request2, DROP_OFF));
+    assertFalse(routeGenerator.failed());
+    assertEquals(List.of(Duration.ZERO, Duration.ZERO, Duration.ZERO, extraWait),
+        routeGenerator.extraWait());
+    assertEquals(dropOffTimeWindowStart2, routeGenerator.time());
+    assertEquals(dropOffServiceTime2, routeGenerator.serviceTime());
+    assertEquals(List.of(Duration.ZERO, Duration.ZERO), routeGenerator.dropOffDelays());
+  }
+
+  @Test
+  public void twoPickUpsTwoDropOffsAtSameLocationAfterWindowStart() {
+    Instant time = Instant.now();
+    DrivingTimeMatrix drivingTimeMatrix = mock(DrivingTimeMatrix.class);
+    RouteGenerator routeGenerator = new RouteGenerator(time, drivingTimeMatrix);
+    LatLng pickUpLocation = new LatLng(40.699161529541016, -73.985969543457031);
+    Integer pickUpLocationId = 1;
+    LatLng dropOffLocation = new LatLng(40.701595306396484, -74.012008666992188);
+    Integer dropOffLocationId = 2;
+    Duration drivingTime = Duration.ofMinutes(10);
+    when(drivingTimeMatrix.drivingTime(eq(pickUpLocation), eq(dropOffLocation)))
+        .thenReturn(drivingTime);
+    Instant pickUpTimeStart1 = time;
+    Duration pickUpServiceTime1 = Duration.ofMinutes(5);
+    Instant pickUpTimeStart2 = time;
+    Duration pickUpServiceTime2 = Duration.ofMinutes(7);
+    Instant arrivalTimeAtDropOff = time.plus(pickUpServiceTime2).plus(drivingTime);
+    Instant dropOffTimeWindowStart1 = arrivalTimeAtDropOff;
+    Duration dropOffServiceTime1 = Duration.ofMinutes(3);
+    Instant dropOffTimeTarget1 = dropOffTimeWindowStart1.plus(dropOffServiceTime1);
+    Request request1 = new Request(UUID.randomUUID().toString(), pickUpLocation, pickUpLocationId,
+        dropOffLocation, dropOffLocationId, null, null, pickUpTimeStart1, null, null,
+        pickUpServiceTime1, dropOffTimeWindowStart1, null, dropOffServiceTime1, dropOffTimeTarget1,
+        null);
+    Duration delay = Duration.ofMinutes(2);
+    Instant dropOffTimeWindowStart2 =
+        arrivalTimeAtDropOff.minus(delay);
+    Duration dropOffServiceTime2 = Duration.ofMinutes(4);
+    Instant dropOffTimeTarget = dropOffTimeWindowStart2.plus(dropOffServiceTime2);
+    Request request2 = new Request(UUID.randomUUID().toString(), pickUpLocation, pickUpLocationId,
+        dropOffLocation, dropOffLocationId, null, null, pickUpTimeStart2, null, null,
+        pickUpServiceTime2, dropOffTimeWindowStart2, null, dropOffServiceTime2, dropOffTimeTarget, null);
+    routeGenerator.add(new RouteStop(request1, PICK_UP));
+    routeGenerator.add(new RouteStop(request2, PICK_UP));
+    routeGenerator.add(new RouteStop(request1, DROP_OFF));
+    routeGenerator.add(new RouteStop(request2, DROP_OFF));
+    assertFalse(routeGenerator.failed());
+    assertEquals(List.of(Duration.ZERO, Duration.ZERO, Duration.ZERO, Duration.ZERO),
+        routeGenerator.extraWait());
+    assertEquals(dropOffTimeWindowStart1, routeGenerator.time());
+    assertEquals(dropOffServiceTime2, routeGenerator.serviceTime());
+    assertEquals(List.of(Duration.ZERO, delay), routeGenerator.dropOffDelays());
   }
 }

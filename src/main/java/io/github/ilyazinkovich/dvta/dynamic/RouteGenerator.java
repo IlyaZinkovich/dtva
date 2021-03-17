@@ -138,19 +138,19 @@ public class RouteGenerator {
           }
           if (stop.request.dropOffTimeWindowStart != null) {
             Instant firstProjectedDeparture = time.plus(serviceTime);
+            if (firstProjectedDeparture.isBefore(stop.request.dropOffTimeWindowStart)) {
+              extraWait.add(
+                  Duration.between(firstProjectedDeparture, stop.request.dropOffTimeWindowStart));
+            } else {
+              extraWait.add(Duration.ZERO);
+            }
             Instant secondProjectedDeparture = max(time, stop.request.dropOffTimeWindowStart)
                 .plus(stop.request.dropOffServiceTime);
             if (secondProjectedDeparture.isAfter(firstProjectedDeparture)) {
               time = max(time, stop.request.dropOffTimeWindowStart);
               serviceTime = stop.request.dropOffServiceTime;
             }
-            if (firstProjectedDeparture.isBefore(stop.request.dropOffTimeWindowStart)) {
-              extraWait.add(
-                  Duration.between(firstProjectedDeparture, stop.request.dropOffTimeWindowStart));
-            }
           }
-          time = max(time, stop.request.dropOffTimeWindowStart);
-          serviceTime = max(serviceTime, stop.request.dropOffServiceTime);
         } else if (stops.getLast().type == DROP_OFF && !sameDropOffLocation) {
           time = time.plus(serviceTime)
               .plus(drivingTimeMatrix.drivingTime(stops.getLast().location(), stop.location()));
@@ -192,13 +192,12 @@ public class RouteGenerator {
           }
           serviceTime = stop.request.dropOffServiceTime;
         }
-        if (stop.request.dropOffTimeTarget != null) {
-          if (time.plus(serviceTime).isAfter(stop.request.dropOffTimeTarget)) {
-            dropOffDelays.add(
+        if (stop.request.dropOffTimeTarget != null
+            && time.plus(serviceTime).isAfter(stop.request.dropOffTimeTarget)) {
+          dropOffDelays.add(
                 Duration.between(stop.request.dropOffTimeTarget, time.plus(serviceTime)));
-          } else {
-            dropOffDelays.add(Duration.ZERO);
-          }
+        } else {
+          dropOffDelays.add(Duration.ZERO);
         }
       }
     }
