@@ -10,7 +10,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -102,10 +101,10 @@ public class RouteGenerator {
         } else if (stops.getLast().type == DROP_OFF) {
           time = time.plus(serviceTime)
               .plus(drivingTimeMatrix.drivingTime(stops.getLast().location(), stop.location()));
-          if (stop.request.dropOffTimeWindowEnd != null
-              && time.isAfter(stop.request.dropOffTimeWindowEnd)) {
+          if (stop.request.pickUpTimeWindowEnd != null
+              && time.isAfter(stop.request.pickUpTimeWindowEnd)) {
             failed = true;
-            failureReason = DROP_OFF_AFTER_TIME_WINDOW_END;
+            failureReason = PICK_UP_AFTER_TIME_WINDOW_END;
             return;
           }
           if (stop.request.pickUpTimeWindowStart != null) {
