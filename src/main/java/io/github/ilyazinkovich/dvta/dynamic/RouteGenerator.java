@@ -16,6 +16,8 @@ public class RouteGenerator {
   private Instant time;
   private Duration queueTime;
   private Duration serviceTime;
+  private final LinkedList<Duration> pickUpDeviations;
+  private final LinkedList<Duration> dropOffDeviations;
 
   RouteGenerator(Instant time) {
     this.failed = false;
@@ -24,6 +26,8 @@ public class RouteGenerator {
     this.time = time;
     this.queueTime = Duration.ZERO;
     this.serviceTime = Duration.ZERO;
+    this.pickUpDeviations = new LinkedList<>();
+    this.dropOffDeviations = new LinkedList<>();
   }
 
   public void add(RouteStop stop) {
@@ -37,8 +41,10 @@ public class RouteGenerator {
           failed = true;
           return;
         }
-        if (stop.request.pickUpTimeWindowStart != null) {
-          time = max(time, stop.request.pickUpTimeWindowStart);
+        if (stop.request.pickUpTimeWindowStart != null
+            && stop.request.pickUpTimeWindowStart.isAfter(time)) {
+          pickUpDeviations.add(Duration.between(time, stop.request.pickUpTimeWindowStart));
+          time = stop.request.pickUpTimeWindowStart;
         } else if (stop.request.pickUpQueueTime != null) {
           queueTime = stop.request.pickUpQueueTime;
         }
@@ -55,8 +61,13 @@ public class RouteGenerator {
               time = max(time, stop.request.pickUpTimeWindowStart);
               serviceTime = stop.request.pickUpServiceTime;
             }
+            if (firstProjectedDeparture.isBefore(stop.request.pickUpTimeWindowStart)) {
+              pickUpDeviations.add(
+                  Duration.between(firstProjectedDeparture, stop.request.pickUpTimeWindowStart));
+            }
           } else if (stop.request.pickUpQueueTime != null) {
             if (queueTime.isZero()) {
+              pickUpDeviations.add(queueTime);
               queueTime = stop.request.pickUpQueueTime;
             }
             serviceTime = max(serviceTime, stop.request.pickUpServiceTime);
@@ -69,8 +80,10 @@ public class RouteGenerator {
             failed = true;
             return;
           }
-          if (stop.request.pickUpTimeWindowStart != null) {
-            time = max(time, stop.request.pickUpTimeWindowStart);
+          if (stop.request.pickUpTimeWindowStart != null
+              && stop.request.pickUpTimeWindowStart.isAfter(time)) {
+            pickUpDeviations.add(Duration.between(time, stop.request.pickUpTimeWindowStart));
+            time = stop.request.pickUpTimeWindowStart;
           } else if (stop.request.pickUpQueueTime != null) {
             queueTime = stop.request.pickUpQueueTime;
           }
@@ -83,8 +96,10 @@ public class RouteGenerator {
             failed = true;
             return;
           }
-          if (stop.request.pickUpTimeWindowStart != null) {
-            time = max(time, stop.request.pickUpTimeWindowStart);
+          if (stop.request.pickUpTimeWindowStart != null
+              && stop.request.pickUpTimeWindowStart.isAfter(time)) {
+            pickUpDeviations.add(Duration.between(time, stop.request.pickUpTimeWindowStart));
+            time = stop.request.pickUpTimeWindowStart;
           } else if (stop.request.pickUpQueueTime != null) {
             queueTime = stop.request.pickUpQueueTime;
           }
@@ -113,6 +128,10 @@ public class RouteGenerator {
               time = max(time, stop.request.dropOffTimeWindowStart);
               serviceTime = stop.request.dropOffServiceTime;
             }
+            if (firstProjectedDeparture.isBefore(stop.request.dropOffTimeWindowStart)) {
+              pickUpDeviations.add(
+                  Duration.between(firstProjectedDeparture, stop.request.dropOffTimeWindowStart));
+            }
           }
           time = max(time, stop.request.dropOffTimeWindowStart);
           serviceTime = max(serviceTime, stop.request.dropOffServiceTime);
@@ -124,8 +143,10 @@ public class RouteGenerator {
             failed = true;
             return;
           }
-          if (stop.request.dropOffTimeWindowStart != null) {
-            time = max(time, stop.request.dropOffTimeWindowStart);
+          if (stop.request.dropOffTimeWindowStart != null
+              && stop.request.dropOffTimeWindowStart.isAfter(time)) {
+            pickUpDeviations.add(Duration.between(time, stop.request.dropOffTimeWindowStart));
+            time = stop.request.dropOffTimeWindowStart;
           }
           queueTime = Duration.ZERO;
           serviceTime = stop.request.dropOffServiceTime;
@@ -137,11 +158,14 @@ public class RouteGenerator {
             failed = true;
             return;
           }
-          if (stop.request.dropOffTimeWindowStart != null) {
-            time = max(time, stop.request.dropOffTimeWindowStart);
+          if (stop.request.dropOffTimeWindowStart != null
+              && stop.request.dropOffTimeWindowStart.isAfter(time)) {
+            pickUpDeviations.add(Duration.between(time, stop.request.dropOffTimeWindowStart));
+            time = stop.request.dropOffTimeWindowStart;
           }
           serviceTime = stop.request.dropOffServiceTime;
         }
+        dropOffDeviations.add(Duration.between(stop.request.dropOffTimeTarget, time));
       }
     }
     stops.add(stop);
