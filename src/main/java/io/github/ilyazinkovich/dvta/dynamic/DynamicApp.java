@@ -2,6 +2,7 @@ package io.github.ilyazinkovich.dvta.dynamic;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -29,7 +30,9 @@ public class DynamicApp {
       rr.add(request, processedRequests, drivingTimeMatrix);
       processedRequests.add(request);
     }
-    System.out.println((double) rr.pairs.size() / (requests.size() * requests.size()));
+    System.out.println(rr.pairs.size());
+    System.out.println(rr.pairs.stream().flatMap(Collection::stream).distinct().count());
+    System.out.println(requests.size());
   }
 
   private static Instant getGlobalTime(List<Request> requests) {
