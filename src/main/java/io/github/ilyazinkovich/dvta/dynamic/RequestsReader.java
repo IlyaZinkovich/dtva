@@ -38,14 +38,14 @@ class RequestsReader {
         Instant pickUpTimeWindowEnd = null;
         Duration pickUpQueueTime = null;
         Duration pickUpServiceTime = Duration.ofMinutes(random.nextInt(3) + 2L);
-        Instant dropOffTimeWindowStart = null;
-        Instant dropOffTimeWindowEnd = null;
         Duration dropOffServiceTime = Duration.ofMinutes(random.nextInt(3) + 2L);
-        Instant dropOffTimeTarget = pickUpTimeWindowStart
+        Instant idealDropOffTime = pickUpTimeWindowStart
             .plus(pickUpServiceTime)
             .plus(drivingTime(pickUpLocation, dropOffLocation))
-            .plus(dropOffServiceTime)
-            .plus(deliveryTimeBuffer);
+            .plus(dropOffServiceTime);
+        Instant dropOffTimeTarget = idealDropOffTime.plus(deliveryTimeBuffer);
+        Instant dropOffTimeWindowStart = idealDropOffTime;
+        Instant dropOffTimeWindowEnd = idealDropOffTime.plus(deliveryTimeBuffer.multipliedBy(2));
         List<Capacity> requiredCapacities = List.of(new Capacity(1, Unit.SEAT));
         requests.add(new Request(id, pickUpLocation, pickUpLocationId, dropOffLocation,
             dropOffLocationId, requestTime, dispatchTimeout, pickUpTimeWindowStart,

@@ -34,7 +34,7 @@ class Capacity {
     return "Capacity{" + quantity + " " + unit.name().toLowerCase() + "}";
   }
 
-  public enum Unit {
+  enum Unit {
     SEAT, KG
   }
 }

@@ -17,7 +17,7 @@ import java.util.LinkedList;
 import java.util.Objects;
 import java.util.Set;
 
-public class RouteGenerator {
+class RouteGenerator {
 
   private FailureReason failureReason;
   private final LinkedList<RouteStop> stops;
@@ -42,7 +42,7 @@ public class RouteGenerator {
     this.state = INITIAL;
   }
 
-  public void add(RouteStop stop) {
+  RouteGenerator add(RouteStop stop) {
     if (state == INITIAL) {
       initialState(stop);
     } else if (state == PICK) {
@@ -51,6 +51,7 @@ public class RouteGenerator {
       dropState(stop);
     }
     stops.add(stop);
+    return this;
   }
 
   private void initialState(RouteStop stop) {

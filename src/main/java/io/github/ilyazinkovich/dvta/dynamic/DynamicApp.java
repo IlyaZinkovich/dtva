@@ -3,8 +3,10 @@ package io.github.ilyazinkovich.dvta.dynamic;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 public class DynamicApp {
 
@@ -20,6 +22,14 @@ public class DynamicApp {
     int vehiclesCount = 100;
     List<Vehicle> vehicles = VehiclesGenerator.generate(requests, vehiclesCount, random);
     System.out.println(vehicles);
+    DrivingTimeMatrix drivingTimeMatrix = new StraightLineDrivingTimeMatrix();
+    RR rr = new RR(new HashSet<>());
+    Set<Request> processedRequests = new HashSet<>();
+    for (Request request : requests) {
+      rr.add(request, processedRequests, drivingTimeMatrix);
+      processedRequests.add(request);
+    }
+    System.out.println((double) rr.pairs.size() / (requests.size() * requests.size()));
   }
 
   private static Instant getGlobalTime(List<Request> requests) {
