@@ -43,9 +43,7 @@ public class RouteGenerator {
   }
 
   public void add(RouteStop stop) {
-    if (state == FAILED) {
-      return;
-    } else if (state == INITIAL) {
+    if (state == INITIAL) {
       initialState(stop);
     } else if (state == PICK) {
       pickState(stop);
