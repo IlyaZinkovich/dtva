@@ -90,7 +90,7 @@ public class RouteGenerator {
         pickDifferentLocation(stop);
       }
     } else if (stop.type == DROP_OFF) {
-      drop(stop);
+      dropDifferentLocation(stop);
     }
   }
 
@@ -141,46 +141,23 @@ public class RouteGenerator {
     }
   }
 
-  private void drop(RouteStop stop) {
-    if (!pickUps.contains(stop.request)) {
-      state = FAILED;
-      failureReason = NO_PICK_UP_FOR_DROP_OFF;
-    } else {
-      time = time.plus(waitTime).plus(serviceTime)
-          .plus(drivingTimeMatrix.drivingTime(stops.getLast().location(), stop.location()));
-      if (stop.request.dropOffTimeWindowEnd != null
-          && time.isAfter(stop.request.dropOffTimeWindowEnd)) {
-        state = FAILED;
-        failureReason = DROP_OFF_AFTER_TIME_WINDOW_END;
-      } else if (stop.request.dropOffTimeWindowStart != null) {
-        if (time.isBefore(stop.request.dropOffTimeWindowStart)) {
-          waitTime = Duration.between(time, stop.request.dropOffTimeWindowStart);
-        } else {
-          waitTime = Duration.ZERO;
-        }
-        extraWait.add(waitTime);
-        serviceTime = stop.request.dropOffServiceTime;
-        state = DROP;
-        calculateDropOffDelay(stop);
-      }
-    }
-  }
-
   private void dropState(RouteStop stop) {
     if (stop.type == PICK_UP) {
-      pick(stop);
+      pickDifferentLocation(stop);
     } else if (stop.type == DROP_OFF) {
       if (sameLocation(stops.getLast().request.dropOffLocationId, stop.request.dropOffLocationId)) {
         dropSameLocation(stop);
       } else {
         dropDifferentLocation(stop);
       }
-      calculateDropOffDelay(stop);
     }
   }
 
   private void dropSameLocation(RouteStop stop) {
-    if (stop.request.dropOffTimeWindowEnd != null
+    if (!pickUps.contains(stop.request)) {
+      state = FAILED;
+      failureReason = NO_PICK_UP_FOR_DROP_OFF;
+    } else if (stop.request.dropOffTimeWindowEnd != null
         && time.isAfter(stop.request.dropOffTimeWindowEnd)) {
       state = FAILED;
       failureReason = DROP_OFF_AFTER_TIME_WINDOW_END;
@@ -203,13 +180,17 @@ public class RouteGenerator {
       }
       serviceTime = stop.request.dropOffServiceTime;
       state = DROP;
+      calculateDropOffDelay(stop);
     }
   }
 
   private void dropDifferentLocation(RouteStop stop) {
     time = time.plus(waitTime).plus(serviceTime)
         .plus(drivingTimeMatrix.drivingTime(stops.getLast().location(), stop.location()));
-    if (stop.request.dropOffTimeWindowEnd != null
+    if (!pickUps.contains(stop.request)) {
+      state = FAILED;
+      failureReason = NO_PICK_UP_FOR_DROP_OFF;
+    } else if (stop.request.dropOffTimeWindowEnd != null
         && time.isAfter(stop.request.dropOffTimeWindowEnd)) {
       state = FAILED;
       failureReason = DROP_OFF_AFTER_TIME_WINDOW_END;
@@ -222,6 +203,7 @@ public class RouteGenerator {
       extraWait.add(waitTime);
       serviceTime = stop.request.dropOffServiceTime;
       state = DROP;
+      calculateDropOffDelay(stop);
     }
   }
 
@@ -232,26 +214,6 @@ public class RouteGenerator {
       dropOffDelays.add(Duration.between(stop.request.dropOffTimeTarget, departure));
     } else {
       dropOffDelays.add(Duration.ZERO);
-    }
-  }
-
-  private void pick(RouteStop stop) {
-    time = time.plus(waitTime).plus(serviceTime)
-        .plus(drivingTimeMatrix.drivingTime(stops.getLast().location(), stop.location()));
-    if (stop.request.pickUpTimeWindowEnd != null
-        && time.isAfter(stop.request.pickUpTimeWindowEnd)) {
-      state = FAILED;
-      failureReason = PICK_UP_AFTER_TIME_WINDOW_END;
-    } else if (stop.request.pickUpTimeWindowStart != null) {
-      if (time.isBefore(stop.request.pickUpTimeWindowStart)) {
-        waitTime = Duration.between(time, stop.request.pickUpTimeWindowStart);
-      } else {
-        waitTime = Duration.ZERO;
-      }
-      extraWait.add(waitTime);
-      serviceTime = stop.request.pickUpServiceTime;
-      state = PICK;
-      pickUps.add(stop.request);
     }
   }
 
