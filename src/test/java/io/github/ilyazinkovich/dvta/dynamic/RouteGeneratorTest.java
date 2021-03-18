@@ -87,7 +87,7 @@ class RouteGeneratorTest {
     routeGenerator.add(new RouteStop(request, PICK_UP));
     assertFalse(routeGenerator.failed());
     assertEquals(List.of(extraWait), routeGenerator.extraWait());
-    assertEquals(pickUpTimeWindowStart, routeGenerator.time());
+    assertEquals(time, routeGenerator.time());
     assertEquals(serviceTime, routeGenerator.serviceTime());
   }
 
@@ -182,8 +182,8 @@ class RouteGeneratorTest {
     routeGenerator.add(new RouteStop(request2, PICK_UP));
     assertFalse(routeGenerator.failed());
     assertEquals(List.of(Duration.ZERO, Duration.ZERO), routeGenerator.extraWait());
-    assertEquals(pickUpTimeWindowStart2, routeGenerator.time());
-    assertEquals(serviceTime2, routeGenerator.serviceTime());
+    assertEquals(time, routeGenerator.time());
+    assertEquals(serviceTime1.plus(serviceTime2).minus(commonWait), routeGenerator.serviceTime());
   }
 
   @Test
@@ -204,7 +204,7 @@ class RouteGeneratorTest {
     routeGenerator.add(new RouteStop(request2, PICK_UP));
     assertFalse(routeGenerator.failed());
     assertEquals(List.of(Duration.ZERO, extraWait), routeGenerator.extraWait());
-    assertEquals(pickUpTimeWindowStart2, routeGenerator.time());
+    assertEquals(pickUpTimeWindowStart1.plus(serviceTime1), routeGenerator.time());
     assertEquals(serviceTime2, routeGenerator.serviceTime());
   }
 
@@ -255,8 +255,8 @@ class RouteGeneratorTest {
         null, null, null, null, pickUpTimeWindowStart1, null, null, serviceTime1, null, null, null,
         null, null);
     Duration extraWait = Duration.ofMinutes(2);
-    Instant pickUpTimeWindowStart2 =
-        pickUpTimeWindowStart1.plus(serviceTime1).plus(drivingTime).plus(extraWait);
+    Instant arrivalAtPickUpLocation2 = pickUpTimeWindowStart1.plus(serviceTime1).plus(drivingTime);
+    Instant pickUpTimeWindowStart2 = arrivalAtPickUpLocation2.plus(extraWait);
     Duration serviceTime2 = Duration.ofMinutes(3);
     Request request2 = new Request(UUID.randomUUID().toString(), pickUpLocation2, pickUpLocationId2,
         null, null, null, null, pickUpTimeWindowStart2, null, null, serviceTime2, null, null, null,
@@ -265,7 +265,7 @@ class RouteGeneratorTest {
     routeGenerator.add(new RouteStop(request2, PICK_UP));
     assertFalse(routeGenerator.failed());
     assertEquals(List.of(Duration.ZERO, extraWait), routeGenerator.extraWait());
-    assertEquals(pickUpTimeWindowStart2, routeGenerator.time());
+    assertEquals(arrivalAtPickUpLocation2, routeGenerator.time());
     assertEquals(serviceTime2, routeGenerator.serviceTime());
   }
 
@@ -350,7 +350,7 @@ class RouteGeneratorTest {
     routeGenerator.add(new RouteStop(request, DROP_OFF));
     assertFalse(routeGenerator.failed());
     assertEquals(List.of(Duration.ZERO, extraWait), routeGenerator.extraWait());
-    assertEquals(dropOffTimeWindowStart, routeGenerator.time());
+    assertEquals(arrivalTimeAtDropOff, routeGenerator.time());
     assertEquals(dropOffServiceTime, routeGenerator.serviceTime());
     assertEquals(List.of(Duration.ZERO), routeGenerator.dropOffDelays());
   }
@@ -455,7 +455,7 @@ class RouteGeneratorTest {
     routeGenerator.add(new RouteStop(request2, PICK_UP));
     assertFalse(routeGenerator.failed());
     assertEquals(List.of(Duration.ZERO, Duration.ZERO, extraWait), routeGenerator.extraWait());
-    assertEquals(pickUpTimeWindowStart2, routeGenerator.time());
+    assertEquals(arrivalAtPickUp2, routeGenerator.time());
     assertEquals(pickUpServiceTime2, routeGenerator.serviceTime());
     assertEquals(List.of(Duration.ZERO), routeGenerator.dropOffDelays());
   }
@@ -577,7 +577,7 @@ class RouteGeneratorTest {
     assertFalse(routeGenerator.failed());
     assertEquals(List.of(Duration.ZERO, Duration.ZERO, Duration.ZERO, extraWait),
         routeGenerator.extraWait());
-    assertEquals(dropOffTimeWindowStart2, routeGenerator.time());
+    assertEquals(arrivalTimeAtDropOff.plus(dropOffServiceTime1), routeGenerator.time());
     assertEquals(dropOffServiceTime2, routeGenerator.serviceTime());
     assertEquals(List.of(Duration.ZERO, Duration.ZERO), routeGenerator.dropOffDelays());
   }
@@ -607,8 +607,7 @@ class RouteGeneratorTest {
         pickUpServiceTime1, dropOffTimeWindowStart1, null, dropOffServiceTime1, dropOffTimeTarget1,
         null);
     Duration delay = Duration.ofMinutes(2);
-    Instant dropOffTimeWindowStart2 =
-        arrivalTimeAtDropOff.minus(delay);
+    Instant dropOffTimeWindowStart2 = arrivalTimeAtDropOff.minus(delay);
     Duration dropOffServiceTime2 = Duration.ofMinutes(4);
     Instant dropOffTimeTarget = dropOffTimeWindowStart2.plus(dropOffServiceTime2);
     Request request2 = new Request(UUID.randomUUID().toString(), pickUpLocation, pickUpLocationId,
@@ -621,9 +620,9 @@ class RouteGeneratorTest {
     assertFalse(routeGenerator.failed());
     assertEquals(List.of(Duration.ZERO, Duration.ZERO, Duration.ZERO, Duration.ZERO),
         routeGenerator.extraWait());
-    assertEquals(dropOffTimeWindowStart1, routeGenerator.time());
+    assertEquals(dropOffTimeWindowStart2, routeGenerator.time());
     assertEquals(dropOffServiceTime2, routeGenerator.serviceTime());
-    assertEquals(List.of(Duration.ZERO, delay), routeGenerator.dropOffDelays());
+    assertEquals(List.of(Duration.ZERO, Duration.ZERO), routeGenerator.dropOffDelays());
   }
 
   @Test
@@ -714,7 +713,7 @@ class RouteGeneratorTest {
     assertFalse(routeGenerator.failed());
     assertEquals(List.of(Duration.ZERO, Duration.ZERO, Duration.ZERO, extraWait),
         routeGenerator.extraWait());
-    assertEquals(dropOffTimeWindowStart2, routeGenerator.time());
+    assertEquals(arrivalTimeAtDropOff2, routeGenerator.time());
     assertEquals(dropOffServiceTime2, routeGenerator.serviceTime());
     assertEquals(List.of(Duration.ZERO, Duration.ZERO), routeGenerator.dropOffDelays());
   }
