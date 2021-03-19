@@ -97,21 +97,6 @@ class Request {
   public String toString() {
     return "Request{" +
         "id='" + id + '\'' +
-        ", pickUpLocation=" + pickUpLocation +
-        ", pickUpLocationId=" + pickUpLocationId +
-        ", dropOffLocation=" + dropOffLocation +
-        ", dropOffLocationId=" + dropOffLocationId +
-        ", requestTime=" + requestTime +
-        ", dispatchTimeout=" + dispatchTimeout +
-        ", pickUpTimeWindowStart=" + pickUpTimeWindowStart +
-        ", pickUpTimeWindowEnd=" + pickUpTimeWindowEnd +
-        ", pickUpQueueTime=" + pickUpQueueTime +
-        ", pickUpServiceTime=" + pickUpServiceTime +
-        ", dropOffTimeWindowStart=" + dropOffTimeWindowStart +
-        ", dropOffTimeWindowEnd=" + dropOffTimeWindowEnd +
-        ", dropOffServiceTime=" + dropOffServiceTime +
-        ", dropOffTimeTarget=" + dropOffTimeTarget +
-        ", requiredCapacities=" + requiredCapacities +
         '}';
   }
 }

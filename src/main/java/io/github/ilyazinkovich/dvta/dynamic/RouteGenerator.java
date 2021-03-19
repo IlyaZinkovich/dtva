@@ -19,20 +19,20 @@ import java.util.Set;
 
 class RouteGenerator {
 
-  private FailureReason failureReason;
   private final LinkedList<RouteStop> stops;
-  private final Set<Request> pickUps;
-  private Instant time;
-  private Duration waitTime;
-  private Duration serviceTime;
+  private final Set<Request> requests;
   private final LinkedList<Duration> extraWait;
   private final LinkedList<Duration> dropOffDelays;
   private final DrivingTimeMatrix drivingTimeMatrix;
+  private FailureReason failureReason;
+  private Instant time;
+  private Duration waitTime;
+  private Duration serviceTime;
   private State state;
 
   RouteGenerator(Instant time, DrivingTimeMatrix drivingTimeMatrix) {
     this.stops = new LinkedList<>();
-    this.pickUps = new HashSet<>();
+    this.requests = new HashSet<>();
     this.time = time;
     this.waitTime = Duration.ZERO;
     this.serviceTime = Duration.ZERO;
@@ -77,7 +77,7 @@ class RouteGenerator {
       extraWait.add(waitTime);
       serviceTime = stop.request.pickUpServiceTime;
       state = PICK;
-      pickUps.add(stop.request);
+      requests.add(stop.request);
     }
   }
 
@@ -116,7 +116,7 @@ class RouteGenerator {
         extraWait.add(Duration.ZERO);
       }
       state = PICK;
-      pickUps.add(stop.request);
+      requests.add(stop.request);
     }
   }
 
@@ -136,7 +136,7 @@ class RouteGenerator {
       extraWait.add(waitTime);
       serviceTime = stop.request.pickUpServiceTime;
       state = PICK;
-      pickUps.add(stop.request);
+      requests.add(stop.request);
     }
   }
 
@@ -153,7 +153,7 @@ class RouteGenerator {
   }
 
   private void dropSameLocation(RouteStop stop) {
-    if (!pickUps.contains(stop.request)) {
+    if (!requests.contains(stop.request)) {
       state = FAILED;
       failureReason = NO_PICK_UP_FOR_DROP_OFF;
     } else if (stop.request.dropOffTimeWindowEnd != null
@@ -186,7 +186,7 @@ class RouteGenerator {
   private void dropDifferentLocation(RouteStop stop) {
     time = time.plus(waitTime).plus(serviceTime)
         .plus(drivingTimeMatrix.drivingTime(stops.getLast().location(), stop.location()));
-    if (!pickUps.contains(stop.request)) {
+    if (!requests.contains(stop.request)) {
       state = FAILED;
       failureReason = NO_PICK_UP_FOR_DROP_OFF;
     } else if (stop.request.dropOffTimeWindowEnd != null
@@ -249,6 +249,10 @@ class RouteGenerator {
 
   LinkedList<RouteStop> stops() {
     return stops;
+  }
+
+  Set<Request> requests() {
+    return requests;
   }
 
   enum FailureReason {

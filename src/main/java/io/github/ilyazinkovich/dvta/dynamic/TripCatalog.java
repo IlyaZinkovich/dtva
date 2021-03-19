@@ -5,6 +5,7 @@ import static io.github.ilyazinkovich.dvta.dynamic.RouteStop.Type.PICK_UP;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -45,37 +46,42 @@ class TripCatalog {
           int size = trip.route.size();
           List<int[]> insertionPoints = InsertionPoints.generate(0, size);
           for (int[] points : insertionPoints) {
-            RouteGenerator gen = new RouteGenerator(
-                trip.route.getFirst().request.pickUpTimeWindowStart, drivingTimeMatrix);
-            int i = 0;
-            for (RouteStop stop : trip.route) {
-              if (gen.failed()) {
-                break;
-              }
-              if (i < points[0]) {
-                gen.add(stop);
-              } else if (i == points[0]) {
-                gen.add(route.getFirst());
-              } else if (i < points[1]) {
-                gen.add(stop);
-              } else if (i == points[1]) {
-                gen.add(route.getLast());
-              } else {
-                gen.add(stop);
-              }
-              i++;
-            }
-            if (!gen.failed()) {
-              int newSize = trip.requests.size() + 1;
-              Set<Request> tripRequests = new HashSet<>();
-              tripRequests.add(request);
-              tripRequests.addAll(trip.requests);
-              tripsPerRequestsCount.get(newSize).add(new Trip(tripRequests, gen.stops()));
+            RouteGenerator permutation = permute(route, points, trip.route);
+            if (!permutation.failed()) {
+              tripsPerRequestsCount.get(permutation.requests().size())
+                  .add(new Trip(permutation.requests(), permutation.stops()));
             }
           }
         }
       }
     }
+  }
+
+  private RouteGenerator permute(
+      LinkedList<RouteStop> addedStops, int[] insertionPoints, LinkedList<RouteStop> route) {
+    RouteGenerator generator =
+        new RouteGenerator(route.getFirst().request.pickUpTimeWindowStart, drivingTimeMatrix);
+    int i = 0;
+    Iterator<RouteStop> iterator = route.iterator();
+    int size = addedStops.size() + route.size();
+    while (i < size) {
+      if (i < insertionPoints[0]) {
+        generator.add(iterator.next());
+      } else if (i == insertionPoints[0]) {
+        generator.add(addedStops.getFirst());
+      } else if (i < insertionPoints[1]) {
+        generator.add(iterator.next());
+      } else if (i == insertionPoints[1]) {
+        generator.add(addedStops.getLast());
+      } else {
+        generator.add(iterator.next());
+      }
+      i++;
+      if (generator.failed()) {
+        break;
+      }
+    }
+    return generator;
   }
 
   Set<Request> requests() {
