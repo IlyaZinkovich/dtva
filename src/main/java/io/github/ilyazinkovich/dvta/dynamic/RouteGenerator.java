@@ -247,6 +247,10 @@ class RouteGenerator {
     return dropOffDelays;
   }
 
+  LinkedList<RouteStop> stops() {
+    return stops;
+  }
+
   enum FailureReason {
     NO_PICK_UP_FOR_DROP_OFF, PICK_UP_AFTER_TIME_WINDOW_END, DROP_OFF_AFTER_TIME_WINDOW_END
   }
