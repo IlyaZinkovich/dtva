@@ -7,7 +7,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -29,9 +28,10 @@ class TripCatalog {
   }
 
   void add(Request request) {
+    RouteStop pickUp = new RouteStop(request, PICK_UP);
+    RouteStop dropOff = new RouteStop(request, DROP_OFF);
     RouteGenerator generator = new RouteGenerator(request.pickUpTimeWindowStart, drivingTimeMatrix)
-        .add(new RouteStop(request, PICK_UP))
-        .add(new RouteStop(request, DROP_OFF));
+        .add(pickUp).add(dropOff);
     if (generator.failed()) {
       System.err.println(
           "Failed to generate route - " + generator.failureReason() + " - " + request);
@@ -39,17 +39,18 @@ class TripCatalog {
       requests.add(request);
       LinkedList<RouteStop> route = generator.stops();
       tripsPerRequestsCount.get(1).add(new Trip(Set.of(request), route));
-
       Set<Trip> trips = tripsPerRequestsCount.get(1);
       for (Trip trip : trips) {
         if (!trip.requests.contains(request)) {
-          int size = trip.route.size();
-          List<int[]> insertionPoints = InsertionPoints.generate(0, size);
-          for (int[] points : insertionPoints) {
-            RouteGenerator permutation = permute(route, points, trip.route);
-            if (!permutation.failed()) {
-              tripsPerRequestsCount.get(permutation.requests().size())
-                  .add(new Trip(permutation.requests(), permutation.stops()));
+          int start = 0;
+          int end = trip.route.size();
+          for (int i = start; i <= end; i++) {
+            for (int j = i + 1; j <= end + 1; j++) {
+              RouteGenerator permutation = permute(pickUp, i, dropOff, j, trip.route);
+              if (!permutation.failed()) {
+                tripsPerRequestsCount.get(permutation.requests().size())
+                    .add(new Trip(permutation.requests(), permutation.stops()));
+              }
             }
           }
         }
@@ -58,21 +59,23 @@ class TripCatalog {
   }
 
   private RouteGenerator permute(
-      LinkedList<RouteStop> addedStops, int[] insertionPoints, LinkedList<RouteStop> route) {
+      RouteStop pickUp, int pickUpInsertionIndex,
+      RouteStop dropOff, int dropOffInsertionIndex,
+      LinkedList<RouteStop> route) {
     RouteGenerator generator =
         new RouteGenerator(route.getFirst().request.pickUpTimeWindowStart, drivingTimeMatrix);
     int i = 0;
     Iterator<RouteStop> iterator = route.iterator();
-    int size = addedStops.size() + route.size();
+    int size = 2 + route.size();
     while (i < size) {
-      if (i < insertionPoints[0]) {
+      if (i < pickUpInsertionIndex) {
         generator.add(iterator.next());
-      } else if (i == insertionPoints[0]) {
-        generator.add(addedStops.getFirst());
-      } else if (i < insertionPoints[1]) {
+      } else if (i == pickUpInsertionIndex) {
+        generator.add(pickUp);
+      } else if (i < dropOffInsertionIndex) {
         generator.add(iterator.next());
-      } else if (i == insertionPoints[1]) {
-        generator.add(addedStops.getLast());
+      } else if (i == dropOffInsertionIndex) {
+        generator.add(dropOff);
       } else {
         generator.add(iterator.next());
       }

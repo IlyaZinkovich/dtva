@@ -39,6 +39,11 @@ class RR {
             .add(new RouteStop(r2, PICK_UP))
             .add(new RouteStop(r2, DROP_OFF))
             .add(new RouteStop(r1, DROP_OFF)),
+        new RouteGenerator(r1.pickUpTimeWindowStart, drivingTimeMatrix)
+            .add(new RouteStop(r1, PICK_UP))
+            .add(new RouteStop(r1, DROP_OFF))
+            .add(new RouteStop(r2, PICK_UP))
+            .add(new RouteStop(r2, DROP_OFF)),
         new RouteGenerator(r2.pickUpTimeWindowStart, drivingTimeMatrix)
             .add(new RouteStop(r2, PICK_UP))
             .add(new RouteStop(r1, PICK_UP))
@@ -48,6 +53,11 @@ class RR {
             .add(new RouteStop(r2, PICK_UP))
             .add(new RouteStop(r1, PICK_UP))
             .add(new RouteStop(r2, DROP_OFF))
+            .add(new RouteStop(r1, DROP_OFF)),
+        new RouteGenerator(r2.pickUpTimeWindowStart, drivingTimeMatrix)
+            .add(new RouteStop(r2, PICK_UP))
+            .add(new RouteStop(r2, DROP_OFF))
+            .add(new RouteStop(r1, PICK_UP))
             .add(new RouteStop(r1, DROP_OFF)))
         .anyMatch(generator -> !generator.failed());
   }
