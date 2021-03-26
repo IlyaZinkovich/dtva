@@ -3,10 +3,12 @@ package io.github.ilyazinkovich.dvta.dynamic;
 import static io.github.ilyazinkovich.dvta.dynamic.RouteStop.Type.DROP_OFF;
 import static io.github.ilyazinkovich.dvta.dynamic.RouteStop.Type.PICK_UP;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -42,20 +44,26 @@ class TripCatalog {
       Set<Trip> trips = tripsPerRequestsCount.get(1);
       for (Trip trip : trips) {
         if (!trip.requests.contains(request)) {
-          int start = 0;
-          int end = trip.route.size();
-          for (int i = start; i <= end; i++) {
-            for (int j = i + 1; j <= end + 1; j++) {
-              RouteGenerator permutation = permute(pickUp, i, dropOff, j, trip.route);
-              if (!permutation.failed()) {
-                tripsPerRequestsCount.get(permutation.requests().size())
-                    .add(new Trip(permutation.requests(), permutation.stops()));
-              }
-            }
-          }
+          List<Trip> permutations = tripPermutations(trip, pickUp, dropOff);
+          tripsPerRequestsCount.get(trip.requests.size() + 1).addAll(permutations);
         }
       }
     }
+  }
+
+  private List<Trip> tripPermutations(Trip trip, RouteStop pickUp, RouteStop dropOff) {
+    int start = 0;
+    int end = trip.route.size();
+    List<Trip> permutations = new ArrayList<>();
+    for (int i = start; i <= end; i++) {
+      for (int j = i + 1; j <= end + 1; j++) {
+        RouteGenerator permutation = permute(pickUp, i, dropOff, j, trip.route);
+        if (!permutation.failed()) {
+          permutations.add(new Trip(permutation.requests(), permutation.stops()));
+        }
+      }
+    }
+    return permutations;
   }
 
   private RouteGenerator permute(
