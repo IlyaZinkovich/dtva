@@ -16,20 +16,23 @@ public class DynamicApp {
     Duration maxDispatchTime = Duration.ofMinutes(10);
     Duration deliveryTimeBuffer = Duration.ofMinutes(7);
     Random random = new Random(12345);
-    List<Request> requests = RequestsReader.read(maxDispatchTime, deliveryTimeBuffer, random);
+    List<Request> requests = RequestsReader.read(maxDispatchTime, deliveryTimeBuffer, random).subList(0, 100);
     GLOBAL_TIME = getGlobalTime(requests);
     int vehiclesCount = 100;
     List<Vehicle> vehicles = VehiclesGenerator.generate(requests, vehiclesCount, random);
     DrivingTimeMatrix drivingTimeMatrix = new StraightLineDrivingTimeMatrix();
     System.out.println("TC");
     for (int i = 0; i < 100; i++) {
-      TripCatalog tripCatalog = new TripCatalog(5, drivingTimeMatrix);
+      TripCatalog tripCatalog = new TripCatalog(3, drivingTimeMatrix);
       long start = System.currentTimeMillis();
       for (Request request : requests) {
         tripCatalog.add(request);
       }
       System.out.println(System.currentTimeMillis() - start);
     }
+  }
+
+  private static void rr(List<Request> requests, DrivingTimeMatrix drivingTimeMatrix) {
     System.out.println("RR");
     for (int i = 0; i < 100; i++) {
       RR rr = new RR(new HashSet<>());

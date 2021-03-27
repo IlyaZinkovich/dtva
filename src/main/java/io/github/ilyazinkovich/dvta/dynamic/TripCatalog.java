@@ -41,11 +41,13 @@ class TripCatalog {
       requests.add(request);
       LinkedList<RouteStop> route = generator.stops();
       tripsPerRequestsCount.get(1).add(new Trip(Set.of(request), route));
-      Set<Trip> trips = tripsPerRequestsCount.get(1);
-      for (Trip trip : trips) {
-        if (!trip.requests.contains(request)) {
-          List<Trip> permutations = tripPermutations(trip, pickUp, dropOff);
-          tripsPerRequestsCount.get(trip.requests.size() + 1).addAll(permutations);
+      for (int i = 1; i < maxTripRequests; i++) {
+        Set<Trip> trips = tripsPerRequestsCount.get(i);
+        for (Trip trip : trips) {
+          if (!trip.requests.contains(request)) {
+            List<Trip> permutations = tripPermutations(trip, pickUp, dropOff);
+            tripsPerRequestsCount.get(trip.requests.size() + 1).addAll(permutations);
+          }
         }
       }
     }
